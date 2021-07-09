@@ -1,2 +1,2 @@
-# common-rs
+# fluidex-common
 Fluidex common rust crates.
