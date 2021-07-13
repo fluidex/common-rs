@@ -4,13 +4,12 @@ version = "0.1.0"
 authors = ["HAOYUatHZ <haoyu@protonmail.com>"]
 edition = "2018"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 ff = { git = "https://github.com/Fluidex/ff", package = "ff_ce" }
+fnv = "1.0"
 hex = "0.4"
 num-bigint = "0.4"
 poseidon-rs = { git = "https://github.com/Fluidex/poseidon-rs" }
 rust_decimal = "1.14"
 serde = "1.0"
-thiserror = "1.0.26"
+thiserror = "1.0"

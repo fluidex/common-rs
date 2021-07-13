@@ -1,7 +1,9 @@
 use ff::*;
 use num_bigint::BigInt;
-use std::str::FromStr;
 use rust_decimal::Decimal;
+use std::str::FromStr;
+
+pub use fnv::FnvHashMap as MerkleValueMapType;
 
 pub type Fr = poseidon_rs::Fr;
 
