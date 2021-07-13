@@ -1,9 +1,13 @@
+//! Common types definitions
 use ff::*;
-use num_bigint::BigInt;
-use rust_decimal::Decimal;
 use std::str::FromStr;
 
 pub use fnv::FnvHashMap as MerkleValueMapType;
+
+/// re-exports [`num_bigint::BigInt`]
+pub use num_bigint::BigInt;
+/// re-exports [`rust_decimal::Decimal`]
+pub use rust_decimal::Decimal;
 
 pub type Fr = poseidon_rs::Fr;
 

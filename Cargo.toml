@@ -1,15 +1,23 @@
 [package]
 name = "fluidex-common"
 version = "0.1.0"
-authors = ["HAOYUatHZ <haoyu@protonmail.com>"]
+authors = ["HAOYUatHZ <haoyu@protonmail.com>", "lightsing <light.tsing@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+babyjubjub-rs = { git = "https://github.com/Fluidex/babyjubjub-rs" }
 ff = { git = "https://github.com/Fluidex/ff", package = "ff_ce" }
 fnv = "1.0"
 hex = "0.4"
 num-bigint = "0.4"
+num-traits = "0.2"
 poseidon-rs = { git = "https://github.com/Fluidex/poseidon-rs" }
 rust_decimal = "1.14"
 serde = "1.0"
 thiserror = "1.0"
+
+[features]
+default = ["ff-default", "num-bigint-default", "rust-decimal-default"]
+ff-default = ["ff/derive"]
+num-bigint-default = ["num-bigint/rand"]
+rust-decimal-default = ["rust_decimal/maths", "rust_decimal/serde_json"]
