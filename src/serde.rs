@@ -3,8 +3,27 @@ use core::marker::PhantomData;
 use serde::de::{Deserializer, Error, Unexpected, Visitor};
 use serde::ser::Serializer;
 use std::convert::TryInto;
+use crate::types::{Fr, MerkleValueMapType};
 
 pub trait HexArray<'de>: Sized {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer;
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: Deserializer<'de>;
+}
+
+pub trait FrBytes<'de>: Sized {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer;
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: Deserializer<'de>;
+}
+
+pub trait FrStr<'de>: Sized {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where
             S: Serializer;
@@ -49,5 +68,45 @@ impl<'de, const N: usize> HexArray<'de> for [u8; N] {
 
         let visitor = HexArrayVisitor { value: PhantomData };
         deserializer.deserialize_str(visitor)
+    }
+}
+
+impl<'de> FrBytes<'de> for Fr {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+        todo!()
+    }
+
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer<'de> {
+        todo!()
+    }
+}
+
+impl<'de, K> FrBytes<'de> for MerkleValueMapType<K, Fr> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+        todo!()
+    }
+
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer<'de> {
+        todo!()
+    }
+}
+
+impl<'de> FrStr<'de> for Fr {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+        todo!()
+    }
+
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer<'de> {
+        todo!()
+    }
+}
+
+impl<'de, K> FrStr<'de> for MerkleValueMapType<K, Fr> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+        todo!()
+    }
+
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer<'de> {
+        todo!()
     }
 }
