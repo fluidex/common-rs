@@ -1,3 +1,4 @@
+//! Extra support for misc types in serde.
 use core::fmt;
 use core::marker::PhantomData;
 use serde::de::{Deserializer, Error, Unexpected, Visitor};
@@ -5,6 +6,7 @@ use serde::ser::Serializer;
 use std::convert::TryInto;
 use crate::types::{Fr, MerkleValueMapType};
 
+/// Helper trait add serde support to `[u8; N]` using hex encoding.
 pub trait HexArray<'de>: Sized {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where
@@ -14,6 +16,7 @@ pub trait HexArray<'de>: Sized {
             D: Deserializer<'de>;
 }
 
+/// Helper trait add serde support to `Fr` using bytes encoding.
 pub trait FrBytes<'de>: Sized {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where
@@ -23,6 +26,7 @@ pub trait FrBytes<'de>: Sized {
             D: Deserializer<'de>;
 }
 
+/// Helper trait add serde support to `Fr` using big decimal string literal encoding.
 pub trait FrStr<'de>: Sized {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where
