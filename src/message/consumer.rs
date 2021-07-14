@@ -88,7 +88,7 @@ impl<'c, C: RdConsumerExt> SimpleConsumer<'c, C> {
         // kafka server health and topic check, fetch metadata
         self.consumer
             .fetch_metadata(Some(topic), Duration::from_millis(2000u64))
-            .map_err(|e| ConsumerError::TopicHealth(e))?;
+            .map_err(ConsumerError::TopicHealth)?;
 
         self.handlers.insert(topic.to_string(), Box::pin(h));
         Ok(self)
@@ -158,7 +158,7 @@ impl<'c, C, U> MessageHandlerAsync<'c, C> for Typed<U>
     fn on_message(&self, msg: &BorrowedMessage<'c>, cr: &'c C::SelfType) -> PinBox<dyn futures::Future<Output = ()> + Send> {
         if let Some(pl) = msg.payload() {
             match String::from_utf8(pl.to_vec())
-                .map_err(|e| ConsumerError::MessageDecoding(e))
+                .map_err(ConsumerError::MessageDecoding)
                 .and_then(|json_str| {
                     serde_json::from_str::<U::DataType>(&json_str)
                         .map_err(|e| ConsumerError::JsonDecoding(e, json_str))
