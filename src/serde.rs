@@ -1,57 +1,57 @@
 //! Extra support for misc types in serde.
+use core::convert::TryInto;
 use core::fmt;
 use core::marker::PhantomData;
-use core::convert::TryInto;
 use core::str::FromStr;
 
 use num_bigint::BigInt;
 use serde::de::{Deserializer, Error, Unexpected, Visitor};
-use serde::ser::Serializer;
+use serde::ser::{SerializeMap, Serializer};
 
-use crate::types::{Fr, MerkleValueMapType, FrExt};
-
+use crate::types::{Fr, FrExt, MerkleValueMapType};
+use serde::{Deserialize, Serialize};
 
 /// Helper trait add serde support to `[u8; N]` using hex encoding.
 pub trait HexArray<'de>: Sized {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer;
+    where
+        S: Serializer;
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where
-            D: Deserializer<'de>;
+    where
+        D: Deserializer<'de>;
 }
 
 /// Helper trait add serde support to `Fr` using bytes encoding.
 pub trait FrBytes<'de>: Sized {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer;
+    where
+        S: Serializer;
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where
-            D: Deserializer<'de>;
+    where
+        D: Deserializer<'de>;
 }
 
 /// Helper trait add serde support to `Fr` using big decimal string literal encoding.
 pub trait FrStr<'de>: Sized {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer;
+    where
+        S: Serializer;
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where
-            D: Deserializer<'de>;
+    where
+        D: Deserializer<'de>;
 }
 
 impl<'de, const N: usize> HexArray<'de> for [u8; N] {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
+    where
+        S: Serializer,
     {
         serializer.serialize_str(hex::encode(&self).as_str())
     }
 
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where
-            D: Deserializer<'de>,
+    where
+        D: Deserializer<'de>,
     {
         struct HexArrayVisitor<T> {
             value: PhantomData<T>,
@@ -65,8 +65,8 @@ impl<'de, const N: usize> HexArray<'de> for [u8; N] {
             }
 
             fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-                where
-                    E: Error,
+            where
+                E: Error,
             {
                 hex::decode(v)
                     .ok()
@@ -81,11 +81,17 @@ impl<'de, const N: usize> HexArray<'de> for [u8; N] {
 }
 
 impl<'de> FrBytes<'de> for Fr {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
         serializer.serialize_bytes(&self.to_vec_be())
     }
 
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer<'de> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
         struct FrBytesVisitor;
 
         impl<'de> Visitor<'de> for FrBytesVisitor {
@@ -96,10 +102,10 @@ impl<'de> FrBytes<'de> for Fr {
             }
 
             fn visit_bytes<E>(self, v: &[u8]) -> Result<Self::Value, E>
-                where
-                    E: Error,
+            where
+                E: Error,
             {
-                if let Ok(fr) = vec_to_fr(v) {
+                if let Ok(fr) = Fr::from_slice(v) {
                     Ok(fr)
                 } else {
                     Err(Error::invalid_type(Unexpected::Bytes(v), &self))
@@ -111,22 +117,41 @@ impl<'de> FrBytes<'de> for Fr {
     }
 }
 
-impl<'de, K> FrBytes<'de> for MerkleValueMapType<K, Fr> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
-        todo!()
+impl<'de, K> FrBytes<'de> for MerkleValueMapType<K, Fr>
+where
+    K: Serialize,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut map = serializer.serialize_map(Some(self.len()))?;
+        for (k, v) in self.iter() {
+            map.serialize_entry(k, &FrBytesWrapper(v))?;
+        }
+        map.end()
     }
 
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer<'de> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
         todo!()
     }
 }
 
 impl<'de> FrStr<'de> for Fr {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
         serializer.serialize_str(self.to_decimal_string().as_str())
     }
 
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer<'de> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
         struct FrStrVisitor;
 
         impl<'de> Visitor<'de> for FrStrVisitor {
@@ -137,11 +162,11 @@ impl<'de> FrStr<'de> for Fr {
             }
 
             fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-                where
-                    E: Error,
+            where
+                E: Error,
             {
                 if let Ok(fr) = BigInt::from_str(v) {
-                    Ok(bigint_to_fr(fr))
+                    Ok(Fr::from_bigint(fr))
                 } else {
                     Err(Error::invalid_type(Unexpected::Str(v), &self))
                 }
@@ -153,11 +178,17 @@ impl<'de> FrStr<'de> for Fr {
 }
 
 impl<'de, K> FrStr<'de> for MerkleValueMapType<K, Fr> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
         todo!()
     }
 
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer<'de> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
         todo!()
     }
 }

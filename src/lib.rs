@@ -15,4 +15,5 @@ pub use poseidon_rs;
 pub use rust_decimal;
 
 /// [`poseidon_rs::Poseidon`] global
-pub static POSEIDON_HASHER: Lazy<poseidon_rs::Poseidon> = Lazy::new(|| poseidon_rs::Poseidon::new());
+pub static POSEIDON_HASHER: Lazy<poseidon_rs::Poseidon> =
+    Lazy::new(|| poseidon_rs::Poseidon::new());
