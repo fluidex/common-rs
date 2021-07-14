@@ -1,10 +1,15 @@
 //! Extra support for misc types in serde.
 use core::fmt;
 use core::marker::PhantomData;
+use core::convert::TryInto;
+use core::str::FromStr;
+
+use num_bigint::BigInt;
 use serde::de::{Deserializer, Error, Unexpected, Visitor};
 use serde::ser::Serializer;
-use std::convert::TryInto;
-use crate::types::{Fr, MerkleValueMapType};
+
+use crate::types::{Fr, MerkleValueMapType, FrExt};
+
 
 /// Helper trait add serde support to `[u8; N]` using hex encoding.
 pub trait HexArray<'de>: Sized {
@@ -77,11 +82,32 @@ impl<'de, const N: usize> HexArray<'de> for [u8; N] {
 
 impl<'de> FrBytes<'de> for Fr {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
-        todo!()
+        serializer.serialize_bytes(&self.to_vec_be())
     }
 
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer<'de> {
-        todo!()
+        struct FrBytesVisitor;
+
+        impl<'de> Visitor<'de> for FrBytesVisitor {
+            type Value = Fr;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("a Fr in be bytes repr")
+            }
+
+            fn visit_bytes<E>(self, v: &[u8]) -> Result<Self::Value, E>
+                where
+                    E: Error,
+            {
+                if let Ok(fr) = vec_to_fr(v) {
+                    Ok(fr)
+                } else {
+                    Err(Error::invalid_type(Unexpected::Bytes(v), &self))
+                }
+            }
+        }
+
+        deserializer.deserialize_bytes(FrBytesVisitor)
     }
 }
 
@@ -97,11 +123,32 @@ impl<'de, K> FrBytes<'de> for MerkleValueMapType<K, Fr> {
 
 impl<'de> FrStr<'de> for Fr {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
-        todo!()
+        serializer.serialize_str(self.to_decimal_string().as_str())
     }
 
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer<'de> {
-        todo!()
+        struct FrStrVisitor;
+
+        impl<'de> Visitor<'de> for FrStrVisitor {
+            type Value = Fr;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("a Fr in decimal str repr")
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+                where
+                    E: Error,
+            {
+                if let Ok(fr) = BigInt::from_str(v) {
+                    Ok(bigint_to_fr(fr))
+                } else {
+                    Err(Error::invalid_type(Unexpected::Str(v), &self))
+                }
+            }
+        }
+
+        deserializer.deserialize_str(FrStrVisitor)
     }
 }
 
