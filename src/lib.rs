@@ -1,7 +1,10 @@
+#[macro_use] extern crate log;
+
 use once_cell::sync::Lazy;
 
 pub mod serde;
 pub mod types;
+pub mod message;
 
 pub use types::Fr;
 
@@ -12,6 +15,8 @@ pub use fnv;
 pub use num_bigint;
 pub use num_traits;
 pub use poseidon_rs;
+#[cfg(feature = "kafka")]
+pub use rdkafka;
 pub use rust_decimal;
 
 /// [`poseidon_rs::Poseidon`] global
