@@ -55,7 +55,11 @@ impl<C: ConsumerContext> RdConsumerExt for base_consumer::BaseConsumer<C> {
     We should provide some trait which is better understood for users
 */
 pub trait MessageHandlerAsync<'c, C: RdConsumerExt>: Send {
-    fn on_message(&self, msg: &BorrowedMessage<'c>, cr: &'c C::SelfType) -> PinBox<dyn futures::Future<Output = ()> + Send>;
+    fn on_message(
+        &self,
+        msg: &BorrowedMessage<'c>,
+        cr: &'c C::SelfType,
+    ) -> PinBox<dyn futures::Future<Output = ()> + Send>;
     fn on_no_msg(&self, cr: &'c C::SelfType) -> PinBox<dyn futures::Future<Output = ()> + Send>;
 }
 
@@ -75,8 +79,8 @@ impl<C: RdConsumerExt> SimpleConsumer<'_, C> {
 }
 
 pub trait TopicBuilder<C>
-    where
-        C: RdConsumerExt,
+where
+    C: RdConsumerExt,
 {
     type HandlerType: for<'r> MessageHandlerAsync<'r, C> + 'static;
     fn topic_name(&self) -> &str;
@@ -84,7 +88,11 @@ pub trait TopicBuilder<C>
 }
 
 impl<'c, C: RdConsumerExt> SimpleConsumer<'c, C> {
-    pub fn add_topic<'a: 'c>(mut self, topic: &str, h: impl MessageHandlerAsync<'c, C> + 'a) -> Result<SimpleConsumer<'c, C>> {
+    pub fn add_topic<'a: 'c>(
+        mut self,
+        topic: &str,
+        h: impl MessageHandlerAsync<'c, C> + 'a,
+    ) -> Result<SimpleConsumer<'c, C>> {
         // kafka server health and topic check, fetch metadata
         self.consumer
             .fetch_metadata(Some(topic), Duration::from_millis(2000u64))
@@ -95,16 +103,19 @@ impl<'c, C: RdConsumerExt> SimpleConsumer<'c, C> {
     }
 
     pub fn add_topic_config<'a, CF>(self, builder: &'a CF) -> Result<SimpleConsumer<'c, C>>
-        where
-            CF: TopicBuilder<C>,
+    where
+        CF: TopicBuilder<C>,
     {
         self.add_topic(builder.topic_name(), builder.topic_handler())
     }
 
-    pub async fn run_stream<CT, RT>(&self, f: impl Fn(&'c C::SelfType) -> MessageStream<'c, CT, RT>) -> KafkaError
-        where
-            CT: ConsumerContext + 'static,
-            RT: rdkafka::util::AsyncRuntime,
+    pub async fn run_stream<CT, RT>(
+        &self,
+        f: impl Fn(&'c C::SelfType) -> MessageStream<'c, CT, RT>,
+    ) -> KafkaError
+    where
+        CT: ConsumerContext + 'static,
+        RT: rdkafka::util::AsyncRuntime,
     {
         let topic_list: Vec<&str> = self.handlers.iter().map(|(k, _)| k.as_str()).collect();
 
@@ -117,8 +128,11 @@ impl<'c, C: RdConsumerExt> SimpleConsumer<'c, C> {
         loop {
             match stream.next().await.expect("Kafka's stream has no EOF") {
                 Err(KafkaError::NoMessageReceived) => {
-                    let fs: Vec<PinBox<dyn futures::Future<Output = ()> + Send>> =
-                        self.handlers.iter().map(|(_, h)| h.on_no_msg(self.consumer)).collect();
+                    let fs: Vec<PinBox<dyn futures::Future<Output = ()> + Send>> = self
+                        .handlers
+                        .iter()
+                        .map(|(_, h)| h.on_no_msg(self.consumer))
+                        .collect();
                     futures::future::join_all(fs).await;
                 }
                 Err(KafkaError::PartitionEOF(_)) => {} //simply omit this type of error
@@ -151,11 +165,15 @@ pub trait TypedMessageHandlerAsync<'c, C: RdConsumerExt>: Send {
 pub struct Typed<U>(U);
 
 impl<'c, C, U> MessageHandlerAsync<'c, C> for Typed<U>
-    where
-        U: TypedMessageHandlerAsync<'c, C>,
-        C: RdConsumerExt + 'static,
+where
+    U: TypedMessageHandlerAsync<'c, C>,
+    C: RdConsumerExt + 'static,
 {
-    fn on_message(&self, msg: &BorrowedMessage<'c>, cr: &'c C::SelfType) -> PinBox<dyn futures::Future<Output = ()> + Send> {
+    fn on_message(
+        &self,
+        msg: &BorrowedMessage<'c>,
+        cr: &'c C::SelfType,
+    ) -> PinBox<dyn futures::Future<Output = ()> + Send> {
         if let Some(pl) = msg.payload() {
             match String::from_utf8(pl.to_vec())
                 .map_err(ConsumerError::MessageDecoding)
@@ -184,13 +202,20 @@ impl<'c, C, U> MessageHandlerAsync<'c, C> for Typed<U>
 
 pub trait TypedMessageHandler<'c, C: RdConsumerExt>: Send {
     type DataType: for<'de> Deserialize<'de> + 'static + std::fmt::Debug + Send;
-    fn on_message(&self, msg: &Self::DataType, origin_msg: &BorrowedMessage<'c>, cr: &'c C::SelfType);
+    fn on_message(
+        &self,
+        msg: &Self::DataType,
+        origin_msg: &BorrowedMessage<'c>,
+        cr: &'c C::SelfType,
+    );
     fn on_no_msg(&self, cr: &'c C::SelfType);
 }
 
 pub struct Synced<U>(U);
 
-impl<'c, C: RdConsumerExt, U: TypedMessageHandler<'c, C>> TypedMessageHandlerAsync<'c, C> for Synced<U> {
+impl<'c, C: RdConsumerExt, U: TypedMessageHandler<'c, C>> TypedMessageHandlerAsync<'c, C>
+    for Synced<U>
+{
     type DataType = U::DataType;
 
     fn on_message(
@@ -240,7 +265,11 @@ impl<U> From<U> for Simple<U> {
 }
 
 impl<'c, C: RdConsumerExt, U: SimpleMessageHandler> MessageHandlerAsync<'c, C> for Simple<U> {
-    fn on_message(&self, msg: &BorrowedMessage<'c>, _cr: &'c C::SelfType) -> PinBox<dyn futures::Future<Output = ()> + Send> {
+    fn on_message(
+        &self,
+        msg: &BorrowedMessage<'c>,
+        _cr: &'c C::SelfType,
+    ) -> PinBox<dyn futures::Future<Output = ()> + Send> {
         self.0.on_message(msg);
         Box::pin(async {})
     }

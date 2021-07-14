@@ -1,10 +1,11 @@
-#[macro_use] extern crate log;
+#[macro_use]
+extern crate log;
 
 use once_cell::sync::Lazy;
 
+pub mod message;
 pub mod serde;
 pub mod types;
-pub mod message;
 
 pub use types::Fr;
 
@@ -20,5 +21,4 @@ pub use rdkafka;
 pub use rust_decimal;
 
 /// [`poseidon_rs::Poseidon`] global
-pub static POSEIDON_HASHER: Lazy<poseidon_rs::Poseidon> =
-    Lazy::new(poseidon_rs::Poseidon::new);
+pub static POSEIDON_HASHER: Lazy<poseidon_rs::Poseidon> = Lazy::new(poseidon_rs::Poseidon::new);
