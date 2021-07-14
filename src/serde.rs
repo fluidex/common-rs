@@ -7,9 +7,10 @@ use core::str::FromStr;
 use num_bigint::BigInt;
 use serde::de::{Deserializer, Error, Unexpected, Visitor};
 use serde::ser::{SerializeMap, Serializer};
+use serde::{Deserialize, Serialize};
 
 use crate::types::{Fr, FrExt, MerkleValueMapType};
-use serde::{Deserialize, Serialize};
+use std::hash::Hash;
 
 /// Helper trait add serde support to `[u8; N]` using hex encoding.
 pub trait HexArray<'de>: Sized {
@@ -119,15 +120,18 @@ impl<'de> FrBytes<'de> for Fr {
 
 impl<'de, K> FrBytes<'de> for MerkleValueMapType<K, Fr>
 where
-    K: Serialize,
+    K: Eq + Hash + Serialize + Deserialize<'de>,
 {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
+        #[derive(Serialize)]
+        struct Wrapper(#[serde(with = "FrBytes")] Fr);
+
         let mut map = serializer.serialize_map(Some(self.len()))?;
         for (k, v) in self.iter() {
-            map.serialize_entry(k, &FrBytesWrapper(v))?;
+            map.serialize_entry(k, &Wrapper(*v))?;
         }
         map.end()
     }
@@ -136,7 +140,12 @@ where
     where
         D: Deserializer<'de>,
     {
-        todo!()
+        #[derive(Deserialize)]
+        struct Wrapper(#[serde(with = "FrBytes")] Fr);
+
+        let map = MerkleValueMapType::<K, Wrapper>::deserialize(deserializer)?;
+
+        Ok(map.into_iter().map(|(k, Wrapper(v))| (k, v)).collect())
     }
 }
 
@@ -177,18 +186,33 @@ impl<'de> FrStr<'de> for Fr {
     }
 }
 
-impl<'de, K> FrStr<'de> for MerkleValueMapType<K, Fr> {
+impl<'de, K> FrStr<'de> for MerkleValueMapType<K, Fr>
+where
+    K: Eq + Hash + Serialize + Deserialize<'de>,
+{
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        todo!()
+        #[derive(Serialize)]
+        struct Wrapper(#[serde(with = "FrStr")] Fr);
+
+        let mut map = serializer.serialize_map(Some(self.len()))?;
+        for (k, v) in self.iter() {
+            map.serialize_entry(k, &Wrapper(*v))?;
+        }
+        map.end()
     }
 
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
-        todo!()
+        #[derive(Deserialize)]
+        struct Wrapper(#[serde(with = "FrStr")] Fr);
+
+        let map = MerkleValueMapType::<K, Wrapper>::deserialize(deserializer)?;
+
+        Ok(map.into_iter().map(|(k, Wrapper(v))| (k, v)).collect())
     }
 }
