@@ -1,4 +1,21 @@
 //! Extra support for misc types in serde.
+//!
+//! Example:
+//! ```
+//! use serde::{Serialize, Deserialize};
+//! use fluidex_common::serde::*;
+//! use fluidex_common::Fr;
+//!
+//! #[derive(Debug, Serialize, Deserialize)]
+//! struct Message {
+//!     #[serde(with = "HexArray")]
+//!     signature: [u8; 64],
+//!     #[serde(with = "FrBytes")]
+//!     from: Fr,
+//!     #[serde(with = "FrStr")]
+//!     to: Fr,
+//! }
+//! ```
 use core::convert::TryInto;
 use core::fmt;
 use core::marker::PhantomData;
