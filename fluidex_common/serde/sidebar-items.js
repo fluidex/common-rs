@@ -1,0 +1,1 @@
+initSidebarItems({"trait":[["FrBytes","Helper trait add serde support to `Fr` using bytes encoding."],["FrStr","Helper trait add serde support to `Fr` using big decimal string literal encoding."],["HexArray","Helper trait add serde support to `[u8; N]` using hex encoding."]]});

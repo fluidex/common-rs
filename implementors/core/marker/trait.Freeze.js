@@ -1,0 +1,3 @@
+(function() {var implementors = {};
+implementors["fluidex_common"] = [{"text":"impl Freeze for <a class=\"enum\" href=\"fluidex_common/types/enum.FrExtError.html\" title=\"enum fluidex_common::types::FrExtError\">FrExtError</a>","synthetic":true,"types":["fluidex_common::types::FrExtError"]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

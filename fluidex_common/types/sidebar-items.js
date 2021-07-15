@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["FrExtError",""]],"struct":[["BigInt","re-exports [`num_bigint::BigInt`]"],["Decimal","re-exports [`rust_decimal::Decimal`]"]],"trait":[["FrExt",""]],"type":[["Fr",""],["MerkleValueMapType","A `HashMap` using a default FNV hasher."]]});

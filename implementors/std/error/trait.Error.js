@@ -1,0 +1,3 @@
+(function() {var implementors = {};
+implementors["fluidex_common"] = [{"text":"impl <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/std/error/trait.Error.html\" title=\"trait std::error::Error\">Error</a> for <a class=\"enum\" href=\"fluidex_common/types/enum.FrExtError.html\" title=\"enum fluidex_common::types::FrExtError\">FrExtError</a>","synthetic":false,"types":["fluidex_common::types::FrExtError"]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
