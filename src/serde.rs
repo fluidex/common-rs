@@ -135,22 +135,6 @@ impl<'de> FrBytes<'de> for Fr {
     }
 }
 
-impl<'a, 'de> FrBytes<'de> for &'a Fr {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        self.serialize(serializer)
-    }
-
-    fn deserialize<D>(_deserializer: D) -> Result<Self, D::Error>
-        where
-            D: Deserializer<'de>,
-    {
-        panic!("no implementation for deserializing &Fr");
-    }
-}
-
 impl<'de, K> FrBytes<'de> for MerkleValueMapType<K, Fr>
 where
     K: Eq + Hash + Serialize + Deserialize<'de>,
@@ -218,23 +202,6 @@ impl<'de> FrStr<'de> for Fr {
         deserializer.deserialize_str(FrStrVisitor)
     }
 }
-
-impl<'a, 'de> FrStr<'de> for &'a Fr {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
-    {
-        self.serialize(serializer)
-    }
-
-    fn deserialize<D>(_deserializer: D) -> Result<Self, D::Error>
-        where
-            D: Deserializer<'de>,
-    {
-        panic!("no implementation for deserializing &Fr");
-    }
-}
-
 
 impl<'de, K> FrStr<'de> for MerkleValueMapType<K, Fr>
 where
