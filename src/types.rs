@@ -9,6 +9,8 @@ pub use num_bigint::BigInt;
 /// re-exports [`rust_decimal::Decimal`]
 pub use rust_decimal::Decimal;
 
+use crate::POSEIDON_HASHER;
+
 pub type Fr = poseidon_rs::Fr;
 
 #[derive(Debug, thiserror::Error)]
@@ -29,6 +31,7 @@ pub trait FrExt: Sized {
     fn shl(&self, x: u32) -> Self;
     fn sub(&self, b: &Fr) -> Self;
     fn add(&self, b: &Fr) -> Self;
+    fn hash(inputs: &[Self]) -> Self;
     fn from_u32(x: u32) -> Self;
     fn from_u64(x: u64) -> Self;
     fn from_bigint(x: BigInt) -> Self;
@@ -60,6 +63,10 @@ impl FrExt for Fr {
         let mut r = *self;
         r.add_assign(b);
         r
+    }
+
+    fn hash(inputs: &[Fr]) -> Fr {
+        (&POSEIDON_HASHER).hash(inputs.to_vec()).unwrap()
     }
 
     fn from_u32(x: u32) -> Self {
