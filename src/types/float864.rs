@@ -1,8 +1,8 @@
 use std::convert::TryInto;
 
-use crate::types::{Fr, FrExt};
-use crate::num_traits::Pow;
 use super::{BigInt, Decimal};
+use crate::num_traits::Pow;
+use crate::types::{Fr, FrExt};
 
 /// a float representation with 1 byte exponent and 8 bytes significand
 #[derive(Debug, Clone, Copy)]
@@ -21,7 +21,7 @@ pub enum Float864Error {
     #[error(transparent)]
     TryFromSlice(#[from] std::array::TryFromSliceError),
     #[error(transparent)]
-    ParseInt(#[from] std::num::ParseIntError)
+    ParseInt(#[from] std::num::ParseIntError),
 }
 
 type Result<T, E = Float864Error> = std::result::Result<T, E>;
@@ -45,13 +45,17 @@ impl Float864 {
     pub fn decode(data: &[u8]) -> Result<Self> {
         let exponent = u8::from_be_bytes(data[0..1].try_into()?);
         let significand = u64::from_be_bytes(data[1..9].try_into()?);
-        Ok(Self { exponent, significand })
+        Ok(Self {
+            exponent,
+            significand,
+        })
     }
 
     pub fn to_decimal(self, prec: u32) -> Decimal {
         // for example, (significand:1, exponent:17) means 10**17, when prec is 18,
         // it is 0.1 (ETH)
-        Decimal::new(self.significand as i64, 0) * Decimal::new(10, 0).pow(self.exponent as u64) / Decimal::new(10, 0).pow(prec as u64)
+        Decimal::new(self.significand as i64, 0) * Decimal::new(10, 0).pow(self.exponent as u64)
+            / Decimal::new(10, 0).pow(prec as u64)
     }
 
     pub fn from_decimal(d: &Decimal, prec: u32) -> Result<Self> {
@@ -83,7 +87,10 @@ impl Float864 {
         }
         // TODO: a better way...
         let significand: u64 = n.floor().to_string().parse::<u64>()?;
-        Ok(Float864 { exponent, significand })
+        Ok(Float864 {
+            exponent,
+            significand,
+        })
     }
 }
 

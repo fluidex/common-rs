@@ -27,6 +27,7 @@ impl SignatureExt for Signature {
 
         let signature = signature.trim_start_matches("0x");
         let sig_packed_vec = hex::decode(signature)?;
-        decompress_signature(&sig_packed_vec.try_into().map_err(InvalidLength)?).map_err(InvalidPoint)
+        decompress_signature(&sig_packed_vec.try_into().map_err(InvalidLength)?)
+            .map_err(InvalidPoint)
     }
 }

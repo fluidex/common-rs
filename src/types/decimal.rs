@@ -1,6 +1,6 @@
-use crate::Fr;
-use crate::num_traits::{Pow, ToPrimitive};
 use super::{Decimal, Float864, FrExt};
+use crate::num_traits::{Pow, ToPrimitive};
+use crate::Fr;
 
 pub trait DecimalExt {
     fn to_u64(&self, prec: u32) -> u64;

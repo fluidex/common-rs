@@ -37,7 +37,6 @@ pub enum FrExtError {
 
 type Result<T, E = FrExtError> = std::result::Result<T, E>;
 
-
 #[cfg(test)]
 #[test]
 fn test_decimal_to_fr() {
