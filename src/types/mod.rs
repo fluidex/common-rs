@@ -11,8 +11,13 @@ pub use rust_decimal::Decimal;
 
 mod decimal;
 mod float864;
+mod pubkey;
+mod signature;
+
 pub use decimal::*;
 pub use float864::*;
+pub use pubkey::*;
+pub use signature::*;
 
 use crate::POSEIDON_HASHER;
 
