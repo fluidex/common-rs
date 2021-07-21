@@ -6,7 +6,7 @@ use std::fmt::Debug;
 ///
 /// This implementation is optimized based on the assumption that most iterators are empty.
 /// Compare to first implementation at [rust playground](https://play.rust-lang.org/?version=stable&mode=debug&edition=2018&gist=6919618250c88342b73e5faeb513d212)
-/// ```not rust
+/// ```text
 /// Benchmarking test_merge_sort_hashmap
 /// Benchmarking test_merge_sort_hashmap: Warming up for 3.0000 s
 /// Benchmarking test_merge_sort_hashmap: Collecting 100 samples in estimated 5.2910 s (86k iterations)
