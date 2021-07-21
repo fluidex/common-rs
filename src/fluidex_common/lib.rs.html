@@ -26,6 +26,8 @@
 <span id="23">23</span>
 <span id="24">24</span>
 <span id="25">25</span>
+<span id="26">26</span>
+<span id="27">27</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="attribute">#[<span class="ident">allow</span>(<span class="ident">unused_imports</span>)]</span>
 <span class="attribute">#[<span class="ident">macro_use</span>]</span>
@@ -33,6 +35,7 @@
 
 <span class="kw">use</span> <span class="ident">once_cell::sync::Lazy</span>;
 
+<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">helper</span>;
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">message</span>;
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">serde</span>;
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">types</span>;
@@ -49,6 +52,7 @@
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;kafka&quot;</span>)]</span>
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">rdkafka</span>;
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">rust_decimal</span>;
+<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">rust_decimal_macros</span>;
 
 <span class="doccomment">/// [`poseidon_rs::Poseidon`] global</span>
 <span class="kw">pub</span> <span class="kw">static</span> <span class="ident">POSEIDON_HASHER</span>: <span class="ident">Lazy</span><span class="op">&lt;</span><span class="ident">poseidon_rs::Poseidon</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">Lazy::new</span>(<span class="ident">poseidon_rs::Poseidon::new</span>);

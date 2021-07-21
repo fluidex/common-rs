@@ -1,1 +1,1 @@
-initSidebarItems({"mod":[["message",""],["serde","Extra support for misc types in serde."],["types","Common types definitions"]],"static":[["POSEIDON_HASHER","[`poseidon_rs::Poseidon`] global"]]});
+initSidebarItems({"mod":[["helper",""],["message",""],["serde","Extra support for misc types in serde."],["types","Common types definitions"]],"static":[["POSEIDON_HASHER","[`poseidon_rs::Poseidon`] global"]]});
