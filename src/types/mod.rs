@@ -1,13 +1,25 @@
 //! Common types definitions
-use ff::*;
 use std::str::FromStr;
 
-pub use fnv::FnvHashMap as MerkleValueMapType;
+use ff::*;
 
+pub use fnv::FnvHashMap as MerkleValueMapType;
 /// re-exports [`num_bigint::BigInt`]
 pub use num_bigint::BigInt;
 /// re-exports [`rust_decimal::Decimal`]
 pub use rust_decimal::Decimal;
+
+mod decimal;
+mod float864;
+mod pubkey;
+mod signature;
+
+pub use decimal::*;
+pub use float864::*;
+pub use pubkey::*;
+pub use signature::*;
+
+use crate::POSEIDON_HASHER;
 
 pub type Fr = poseidon_rs::Fr;
 
@@ -25,10 +37,22 @@ pub enum FrExtError {
 
 type Result<T, E = FrExtError> = std::result::Result<T, E>;
 
+#[cfg(test)]
+#[test]
+fn test_decimal_to_fr() {
+    let pi = Decimal::new(3141, 3);
+    let out = pi.to_fr(3);
+    assert_eq!(
+        "Fr(0x0000000000000000000000000000000000000000000000000000000000000c45)",
+        out.to_string()
+    );
+}
+
 pub trait FrExt: Sized {
     fn shl(&self, x: u32) -> Self;
     fn sub(&self, b: &Fr) -> Self;
     fn add(&self, b: &Fr) -> Self;
+    fn hash(inputs: &[Self]) -> Self;
     fn from_u32(x: u32) -> Self;
     fn from_u64(x: u64) -> Self;
     fn from_bigint(x: BigInt) -> Self;
@@ -60,6 +84,10 @@ impl FrExt for Fr {
         let mut r = *self;
         r.add_assign(b);
         r
+    }
+
+    fn hash(inputs: &[Fr]) -> Fr {
+        (&POSEIDON_HASHER).hash(inputs.to_vec()).unwrap()
     }
 
     fn from_u32(x: u32) -> Self {

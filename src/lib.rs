@@ -4,6 +4,7 @@ extern crate log;
 
 use once_cell::sync::Lazy;
 
+pub mod helper;
 pub mod message;
 pub mod serde;
 pub mod types;
@@ -20,6 +21,7 @@ pub use poseidon_rs;
 #[cfg(feature = "kafka")]
 pub use rdkafka;
 pub use rust_decimal;
+pub use rust_decimal_macros;
 
 /// [`poseidon_rs::Poseidon`] global
 pub static POSEIDON_HASHER: Lazy<poseidon_rs::Poseidon> = Lazy::new(poseidon_rs::Poseidon::new);
