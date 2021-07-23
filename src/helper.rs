@@ -1,5 +1,5 @@
 use std::cmp::Ordering;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::fmt::Debug;
 
 /// A Iterator that run merge sort on `N` ordered iterators.
@@ -25,13 +25,13 @@ use std::fmt::Debug;
 ///   8 (8.00%) high mild
 ///   2 (2.00%) high severe
 /// ```
-#[derive(Debug)]
-pub struct MergeSortIterator<T, I> {
-    sources: HashMap<usize, I>,
-    buffered: HashMap<usize, T>,
+pub struct MergeSortIterator<T, I, F> {
+    sources: BTreeMap<usize, I>,
+    buffered: BTreeMap<usize, T>,
     #[cfg(debug_assertions)]
-    last_elements: HashMap<usize, T>,
+    last_elements: BTreeMap<usize, T>,
     ordering: Order,
+    compare: F,
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -40,74 +40,102 @@ pub enum Order {
     Desc,
 }
 
-impl<T: Clone + Debug + Ord, I: Iterator<Item = T>> MergeSortIterator<T, I> {
-    /// Build a `MergeSortIterator` from a array of Iterator
-    pub fn new(sources: Vec<I>, ordering: Order) -> Self {
-        let (buffered, sources): (HashMap<usize, T>, HashMap<usize, I>) = sources
+impl<T, I, F> MergeSortIterator<T, I, F>
+where
+    T: Clone + Debug,
+    I: Iterator<Item = T>,
+    F: Fn(&T, &T) -> Ordering,
+{
+    /// Create a `MergeSortIterator` with a custom comparator.
+    pub fn compare_by(sources: Vec<I>, ordering: Order, compare: F) -> Self {
+        let (buffered, sources): (BTreeMap<usize, T>, BTreeMap<usize, I>) = sources
             .into_iter()
             .map(|mut iter| (iter.next(), iter))
             .filter(|(next, _iter)| next.is_some())
             .enumerate()
             .map(|(idx, (next, iter))| ((idx, next.unwrap()), (idx, iter)))
             .unzip();
-        let size = sources.len();
         Self {
             sources,
             buffered,
             #[cfg(debug_assertions)]
-            last_elements: HashMap::with_capacity(size),
+            last_elements: BTreeMap::new(),
             ordering,
+            compare,
         }
     }
 
     /// Find the most `ordering` element in the `buffered` array.
     /// ## panics
     /// When the elements in `buffered` are all `None`, calling to this function will panics.
-    fn arg_cmp(&mut self) -> usize {
+    /// Build a `MergeSortIterator` from a array of Iterator
+    pub fn arg_cmp_by(&self) -> usize {
         use Order::*;
 
         let tmp = self.buffered.iter();
         *match self.ordering {
-            Asc => tmp.min_by(|(_idx, x), (_idy, y)| x.cmp(y)),
-            Desc => tmp.max_by(|(_idx, x), (_idy, y)| x.cmp(y)),
+            Asc => tmp.min_by(|(_idx, x), (_idy, y)| (self.compare)(x, y)),
+            Desc => tmp.max_by(|(_idx, x), (_idy, y)| (self.compare)(x, y)),
         }
         .unwrap()
         .0
     }
+
+    /// swap out the element by idx and get next element if possible.
+    fn swap_next(&mut self, idx: usize) -> T {
+        if let Some(next) = self.sources.get_mut(&idx).unwrap().next() {
+            self.buffered.insert(idx, next).unwrap()
+        } else {
+            self.buffered.remove(&idx).unwrap()
+        }
+    }
+
+    #[cfg(debug_assertions)]
+    /// check ordering
+    fn continuation_check(&mut self, idx: usize, new: &T) {
+        use Order::*;
+        use Ordering::*;
+
+        if self.last_elements.contains_key(&idx)
+            && match (self.compare)(&self.last_elements.insert(idx, new.clone()).unwrap(), &new) {
+                Less => self.ordering == Desc,
+                Equal => false,
+                Greater => self.ordering == Asc,
+            }
+        {
+            panic!(
+                "provided iterator is not ordered, last element: {:?}, current element: {:?}",
+                self.last_elements[&idx], new
+            )
+        }
+    }
 }
 
-impl<T: Clone + Debug + Ord, I: Iterator<Item = T>> Iterator for MergeSortIterator<T, I> {
+impl<T, I> MergeSortIterator<T, I, fn(&T, &T) -> Ordering>
+where
+    T: Clone + Debug + Ord,
+    I: Iterator<Item = T>,
+{
+    /// Default comparator when `Ord` trait satisfied
+    pub fn new(sources: Vec<I>, ordering: Order) -> Self {
+        Self::compare_by(sources, ordering, Ord::cmp)
+    }
+}
+
+impl<T, I, F> Iterator for MergeSortIterator<T, I, F>
+where
+    T: Clone + Debug,
+    I: Iterator<Item = T>,
+    F: Fn(&T, &T) -> Ordering,
+{
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
         if !self.buffered.is_empty() {
-            let idx = self.arg_cmp();
-            let ret = if let Some(next) = self.sources.get_mut(&idx).unwrap().next() {
-                self.buffered.insert(idx, next).unwrap()
-            } else {
-                self.buffered.remove(&idx).unwrap()
-            };
+            let idx = self.arg_cmp_by();
+            let ret = self.swap_next(idx);
             #[cfg(debug_assertions)]
-            {
-                // check ordering
-                use Order::*;
-                use Ordering::*;
-
-                if self.last_elements.contains_key(&idx)
-                    && match self
-                        .last_elements
-                        .insert(idx, ret.clone())
-                        .unwrap()
-                        .cmp(&ret)
-                    {
-                        Less => self.ordering == Desc,
-                        Equal => false,
-                        Greater => self.ordering == Asc,
-                    }
-                {
-                    panic!("provided iterator is not ordered, last element: {:?}, current element: {:?}", self.last_elements[&idx], ret)
-                }
-            }
+            self.continuation_check(idx, &ret);
             Some(ret)
         } else {
             None
