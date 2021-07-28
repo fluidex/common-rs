@@ -4,6 +4,7 @@ extern crate log;
 
 use once_cell::sync::Lazy;
 
+pub mod db;
 pub mod helper;
 pub mod message;
 pub mod serde;
