@@ -3,4 +3,5 @@ pub mod tablenames {
     pub const TASK: &str = "task";
 }
 
+pub mod l2_block;
 pub mod task;
