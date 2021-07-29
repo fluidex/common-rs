@@ -7,6 +7,7 @@ edition = "2018"
 [dependencies]
 babyjubjub-rs = { git = "https://github.com/Fluidex/babyjubjub-rs" }
 cfg-if = "1.0"
+chrono = { version = "0.4.19", features = [ "serde" ], optional = true }
 ff = { git = "https://github.com/Fluidex/ff", package = "ff_ce" }
 fnv = "1.0"
 futures = "0.3"
@@ -35,7 +36,7 @@ kafka = [ "rdkafka" ]
 num-bigint-default = [ "num-bigint/rand" ]
 rdkafka-dynamic = [ "rdkafka/dynamic_linking" ]
 rollup-state-db = [ "db" ]
-db = [ "sqlx" ]
+db = [ "chrono", "serde_json", "sqlx" ]
 rust-decimal-default = [ "rust_decimal/maths", "rust_decimal/serde_json", "serde_json" ]
 rust-decimal-dingir-exchange = [ "rust_decimal/postgres", "rust_decimal/bytes", "rust_decimal/byteorder" ]
 
