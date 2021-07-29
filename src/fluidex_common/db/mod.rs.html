@@ -16,13 +16,17 @@
 <span id="13">13</span>
 <span id="14">14</span>
 <span id="15">15</span>
+<span id="16">16</span>
+<span id="17">17</span>
+<span id="18">18</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="macro">cfg_if::cfg_if!</span> {
-    <span class="kw">if</span> <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">any</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;db&quot;</span>))]</span> {
-        <span class="kw">pub</span> <span class="kw">type</span> <span class="ident">DbType</span> <span class="op">=</span> <span class="ident">sqlx::Postgres</span>;
+    <span class="kw">if</span> <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;db&quot;</span>)]</span> {
         <span class="kw">pub</span> <span class="kw">type</span> <span class="ident">ConnectionType</span> <span class="op">=</span> <span class="ident">sqlx::postgres::PgConnection</span>;
-        <span class="kw">pub</span> <span class="kw">type</span> <span class="ident">PoolOptions</span> <span class="op">=</span> <span class="ident">sqlx::postgres::PgPoolOptions</span>;
         <span class="kw">pub</span> <span class="kw">type</span> <span class="ident">DBErrType</span> <span class="op">=</span> <span class="ident">sqlx::Error</span>;
+        <span class="kw">pub</span> <span class="kw">type</span> <span class="ident">DbType</span> <span class="op">=</span> <span class="ident">sqlx::Postgres</span>;
+        <span class="kw">pub</span> <span class="kw">type</span> <span class="ident">PoolOptions</span> <span class="op">=</span> <span class="ident">sqlx::postgres::PgPoolOptions</span>;
+        <span class="kw">pub</span> <span class="kw">type</span> <span class="ident">TimestampDbType</span> <span class="op">=</span> <span class="ident">chrono::NaiveDateTime</span>;
     }
 }
 
@@ -32,6 +36,8 @@
         <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">migrator::MIGRATOR</span>;
     }
 }
+
+<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">models</span>;
 </pre></div>
 </section><section id="search" class="content hidden"></section><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="fluidex_common" data-search-index-js="../../../search-index.js" data-search-js="../../../search.js"></div>
     <script src="../../../main.js"></script><script src="../../../source-script.js"></script><script src="../../../source-files.js"></script></body></html>
