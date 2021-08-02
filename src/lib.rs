@@ -11,6 +11,7 @@ pub mod message;
 pub mod non_blocking_tracing;
 pub mod serde;
 pub mod types;
+pub mod utils;
 
 pub use types::Fr;
 
