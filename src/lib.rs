@@ -7,6 +7,8 @@ use once_cell::sync::Lazy;
 pub mod db;
 pub mod helper;
 pub mod message;
+#[cfg(feature = "non-blocking-tracing")]
+pub mod non_blocking_tracing;
 pub mod serde;
 pub mod types;
 

@@ -6,6 +6,7 @@ edition = "2018"
 
 [dependencies]
 babyjubjub-rs = { git = "https://github.com/Fluidex/babyjubjub-rs" }
+backtrace = { version = "0.3", optional = true }
 cfg-if = "1.0"
 chrono = { version = "0.4.19", features = [ "serde" ], optional = true }
 ff = { git = "https://github.com/Fluidex/ff", package = "ff_ce" }
@@ -23,6 +24,10 @@ rust_decimal_macros = { version = "1.14", features = [ "reexportable" ] }
 serde = { version = "1.0", features = [ "derive" ] }
 serde_json = { version = "1.0", optional = true }
 sqlx = { version = "0.5", features = [ "runtime-tokio-rustls", "postgres", "chrono", "decimal" ], optional = true }
+tracing = { version = "0.1", optional = true }
+tracing-appender = { version = "0.1", optional = true }
+tracing-subscriber = { version = "0.2", optional = true }
+
 thiserror = "1.0"
 
 [dev-dependencies]
@@ -39,6 +44,7 @@ rollup-state-db = [ "db" ]
 db = [ "chrono", "serde_json", "sqlx" ]
 rust-decimal-default = [ "rust_decimal/maths", "rust_decimal/serde_json", "serde_json" ]
 rust-decimal-dingir-exchange = [ "rust_decimal/postgres", "rust_decimal/bytes", "rust_decimal/byteorder" ]
+non-blocking-tracing = [ "backtrace", "tracing", "tracing-appender", "tracing-subscriber" ]
 
 [[bench]]
 name = "merge_iterator_bench"
