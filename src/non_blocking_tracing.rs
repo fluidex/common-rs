@@ -39,12 +39,7 @@ pub fn set_panic_hook() {
             get_backtrace(),
         );
 
-        // Logs with non-blocking-tracing if the log level of Error is enabled, otherwise prints directly.
-        if log_enabled!(log::Level::Error) {
-            log::error!("{}", overall);
-        } else {
-            println!("{}", overall);
-        }
+        log::error!("{}", overall);
     }));
 }
 
