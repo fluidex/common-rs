@@ -6,8 +6,8 @@ use serde::{Deserialize, Serialize};
 pub enum TaskStatus {
     Inited,
     Witgening,
-    Ready,
-    Assigned,
+    Witgened,
+    Proving,
     Proved,
 }
 

@@ -1,4 +1,4 @@
-CREATE TYPE task_status AS ENUM('inited', 'witgening', 'ready', 'assigned', 'proved');
+CREATE TYPE task_status AS ENUM('inited', 'witgening', 'witgened', 'proving', 'proved');
 
 CREATE TABLE task (
     task_id VARCHAR(30) NOT NULL,
