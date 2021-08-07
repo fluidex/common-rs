@@ -3,5 +3,8 @@ pub mod tablenames {
     pub const TASK: &str = "task";
 }
 
-pub mod l2_block;
-pub mod task;
+mod l2_block;
+pub use l2_block::*;
+
+mod task;
+pub use task::*;
