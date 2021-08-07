@@ -1,4 +1,4 @@
-CREATE TYPE task_status AS ENUM('inited', 'witgening', 'ready', 'assigned', 'proved');
+CREATE TYPE task_status AS ENUM('empty', 'witgening', 'witgened', 'proving', 'proved');
 
 CREATE TABLE task (
     task_id VARCHAR(30) NOT NULL,
@@ -9,7 +9,7 @@ CREATE TABLE task (
     witness BYTEA DEFAULT NULL,
     public_input BYTEA DEFAULT NULL,
     proof BYTEA DEFAULT NULL,
-    status task_status NOT NULL DEFAULT 'inited',
+    status task_status NOT NULL DEFAULT 'empty',
     prover_id VARCHAR(30) DEFAULT NULL,
     created_time TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_time TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP,

@@ -4,10 +4,10 @@ use serde::{Deserialize, Serialize};
 #[derive(sqlx::Type, Serialize, Debug, Clone)]
 #[sqlx(type_name = "task_status", rename_all = "snake_case")]
 pub enum TaskStatus {
-    Inited,
+    Empty,
     Witgening,
-    Ready,
-    Assigned,
+    Witgened,
+    Proving,
     Proved,
 }
 
