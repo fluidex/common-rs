@@ -7,7 +7,6 @@ pub enum BlockStatus {
     Uncommited,
     Commited,
     Submitted,
-    Confirmed,
 }
 
 #[derive(sqlx::FromRow, Serialize, Debug, Clone)]
