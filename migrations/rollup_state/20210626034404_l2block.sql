@@ -1,4 +1,4 @@
-CREATE TYPE block_status AS ENUM('uncommited', 'commited', 'submitted', 'confirmed');
+CREATE TYPE block_status AS ENUM('uncommited', 'commited', 'submitted');
 
 CREATE TABLE l2block (
     block_id BIGINT PRIMARY KEY,
