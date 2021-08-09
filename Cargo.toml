@@ -36,6 +36,7 @@ rand = "0.8.4"
 
 [features]
 default = [ "ff-default", "num-bigint-default", "rust-decimal-default" ]
+unit-test = [ "kafka", "rollup-state-db", "rust-decimal-dingir-exchange", "non-blocking-tracing" ]
 ff-default = [ "ff/derive" ]
 kafka = [ "rdkafka" ]
 num-bigint-default = [ "num-bigint/rand" ]
