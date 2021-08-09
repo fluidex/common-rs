@@ -19,6 +19,7 @@ env:
   SCCACHE_S3_KEY_PREFIX: sccache-gh-action
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  CARGO_INCREMENTAL: false
 
 jobs:
   unit-test:
