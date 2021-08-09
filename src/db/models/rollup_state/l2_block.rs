@@ -5,8 +5,9 @@ use serde::Serialize;
 #[sqlx(type_name = "block_status", rename_all = "snake_case")]
 pub enum BlockStatus {
     Uncommited,
+    Submitting,
     Commited,
-    Submitted,
+    Verified,
 }
 
 #[derive(sqlx::FromRow, Serialize, Debug, Clone)]
