@@ -76,6 +76,9 @@ jobs:
         with:
           command: test
           args: --features "unit-test" --
+          
+      - name: show sccache stats
+        run: ~/.cargo/bin/sccache -s
 
 #      - name: Run "cargo bench"
 #        uses: actions-rs/cargo@v1
