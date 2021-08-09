@@ -52,7 +52,7 @@ jobs:
           key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
           
       - name: Setup sccache
-        uses: Fluidex/sccache-action@*
+        uses: Fluidex/sccache-action@v0.0.1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
