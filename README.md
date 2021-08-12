@@ -3,4 +3,4 @@
 ![issues](https://img.shields.io/github/issues/Fluidex/common-rs)
 [![docs latest](https://img.shields.io/badge/docs-latest-success)](https://www.fluidex.io/common-rs/fluidex_common/)
 
-Fluidex common rust crates.
+FluiDex common rust crates.

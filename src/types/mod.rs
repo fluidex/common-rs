@@ -37,17 +37,6 @@ pub enum FrExtError {
 
 type Result<T, E = FrExtError> = std::result::Result<T, E>;
 
-#[cfg(test)]
-#[test]
-fn test_decimal_to_fr() {
-    let pi = Decimal::new(3141, 3);
-    let out = pi.to_fr(3);
-    assert_eq!(
-        "Fr(0x0000000000000000000000000000000000000000000000000000000000000c45)",
-        out.to_string()
-    );
-}
-
 pub trait FrExt: Sized {
     fn shl(&self, x: u32) -> Self;
     fn sub(&self, b: &Fr) -> Self;
@@ -58,6 +47,8 @@ pub trait FrExt: Sized {
     fn from_bigint(x: BigInt) -> Self;
     fn from_str(x: &str) -> Self;
     fn from_slice(slice: &[u8]) -> Result<Self>;
+    fn to_hex_string(&self) -> String;
+    fn to_hex_string_without_0x(&self) -> String;
     fn to_u32(&self) -> u32;
     fn to_i64(&self) -> i64;
     fn to_bigint(&self) -> BigInt;
@@ -133,6 +124,14 @@ impl FrExt for Fr {
         Ok(Fr::from_repr(repr)?)
     }
 
+    fn to_hex_string(&self) -> String {
+        "0x".to_string() + &to_hex(self)
+    }
+
+    fn to_hex_string_without_0x(&self) -> String {
+        to_hex(self)
+    }
+
     fn to_u32(&self) -> u32 {
         Self::to_decimal_string(self).parse::<u32>().unwrap()
     }
@@ -170,4 +169,30 @@ impl FrExt for Fr {
             Err(FrExtError::InvalidBool)
         }
     }
+}
+
+#[cfg(test)]
+#[test]
+fn test_fr() {
+    // test decimal to fr
+    let pi = Decimal::new(3141, 3);
+    let out = pi.to_fr(3);
+    assert_eq!(
+        "Fr(0x0000000000000000000000000000000000000000000000000000000000000c45)",
+        out.to_string()
+    );
+
+    // test to_hex_string
+    assert_eq!(
+        "Fr(0x0000000000000000000000000000000000000000000000000000000000000c45)",
+        out.to_string()
+    );
+    assert_eq!(
+        "0x0000000000000000000000000000000000000000000000000000000000000c45",
+        out.to_hex_string()
+    );
+    assert_eq!(
+        "0000000000000000000000000000000000000000000000000000000000000c45",
+        out.to_hex_string_without_0x()
+    );
 }
