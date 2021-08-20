@@ -10,7 +10,7 @@ CREATE TABLE task (
     public_input BYTEA DEFAULT NULL,
     proof BYTEA DEFAULT NULL,
     status task_status NOT NULL DEFAULT 'inited',
-    prover_id VARCHAR(30) DEFAULT NULL,
+    prover_id VARCHAR(128) DEFAULT NULL,
     created_time TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_time TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (task_id)
