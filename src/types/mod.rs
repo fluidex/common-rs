@@ -11,11 +11,13 @@ pub use rust_decimal::Decimal;
 
 mod decimal;
 mod float864;
+mod floats;
 mod pubkey;
 mod signature;
 
 pub use decimal::*;
 pub use float864::*;
+pub use floats::*;
 pub use pubkey::*;
 pub use signature::*;
 
