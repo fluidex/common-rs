@@ -108,9 +108,13 @@ impl<T: PrimInt + Zero, const N: usize> Floats<T, N> {
         //TODO: demical can not handle full 128bit integer so we need to verify that,
         //in case the significand can be hold by Decimal it must be able to be converted
         //into i128 safetily
-        Decimal::from_i128(self.significand.to_i128().unwrap()).unwrap()
-            * Decimal::new(10, 0).pow(self.exponent as u64)
-            / Decimal::new(10, 0).pow(prec as u64)
+        let mut ret = Decimal::from_i128(self.significand.to_i128().unwrap()).unwrap();
+        if (self.exponent as u32) < prec {
+            ret.set_scale(prec - self.exponent as u32).unwrap();
+            ret
+        } else {
+            ret * Decimal::new(10, 0).pow(self.exponent as u64 - prec as u64)
+        }
     }
 
     //update from Decimal and round
@@ -329,22 +333,27 @@ mod tests {
         let p1 = Float40::from_decimal(&d, 4).unwrap();
         assert_eq!(p1.exponent, 7);
         assert_eq!(p1.significand, 1);
+        assert_eq!(d, p1.to_decimal(4));
         let d = Decimal::new(1000, 2);
         let p2 = Float40::from_decimal(&d, 4).unwrap();
         assert_eq!(p2.exponent, 5);
         assert_eq!(p2.significand, 1);
+        assert_eq!(d, p2.to_decimal(4));
         let d = Decimal::new(1000000, 6);
         let p3 = Float40::from_decimal(&d, 4).unwrap();
         assert_eq!(p3.exponent, 4);
         assert_eq!(p3.significand, 1);
+        assert_eq!(d, p3.to_decimal(4));
         let d = Decimal::new(12345678, 6);
         let p4 = Float40::from_decimal(&d, 8).unwrap();
         assert_eq!(p4.exponent, 2);
         assert_eq!(p4.significand, 12345678);
+        assert_eq!(d, p4.to_decimal(8));
         let d = Decimal::new(1000000000000i64, 0);
         let p5 = Float40::from_decimal(&d, 2).unwrap();
         assert_eq!(p5.exponent, 14);
         assert_eq!(p5.significand, 1);
+        assert_eq!(d, p5.to_decimal(2));
         let d = Decimal::new(123456, 5);
         let r5 = Floats::<u32, 2>::from_decimal(&d, 6).unwrap();
         assert_eq!(r5.exponent, 2);
@@ -357,22 +366,27 @@ mod tests {
         let m1 = Float40::from_decimal(&d, 4).unwrap();
         assert_eq!(m1.exponent, 7);
         assert_eq!(m1.significand, -1);
+        assert_eq!(d, m1.to_decimal(4));
         let d = Decimal::new(-1000, 2);
         let m2 = Float40::from_decimal(&d, 4).unwrap();
         assert_eq!(m2.exponent, 5);
         assert_eq!(m2.significand, -1);
+        assert_eq!(d, m2.to_decimal(4));
         let d = Decimal::new(-1000000, 6);
         let m3 = Float40::from_decimal(&d, 4).unwrap();
         assert_eq!(m3.exponent, 4);
         assert_eq!(m3.significand, -1);
+        assert_eq!(d, m3.to_decimal(4));
         let d = Decimal::new(-12345678, 6);
         let m4 = Float40::from_decimal(&d, 8).unwrap();
         assert_eq!(m4.exponent, 2);
         assert_eq!(m4.significand, -12345678);
+        assert_eq!(d, m4.to_decimal(8));
         let d = Decimal::new(-1000000000000i64, 0);
         let m5 = Float40::from_decimal(&d, 2).unwrap();
         assert_eq!(m5.exponent, 14);
         assert_eq!(m5.significand, -1);
+        assert_eq!(d, m5.to_decimal(2));
         let d = Decimal::new(-123456, 5);
         let mr5 = Floats::<i32, 2>::from_decimal(&d, 6).unwrap();
         assert_eq!(mr5.exponent, 2);
