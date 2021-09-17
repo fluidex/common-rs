@@ -1,12 +1,11 @@
-use std::convert::TryInto;
-
 use super::{BigInt, Decimal};
-use crate::num_traits::{identities::Zero, int::PrimInt, FromPrimitive, Pow, ToPrimitive};
+use crate::num_traits::{identities::Zero, int::PrimInt, FromPrimitive, Pow, Signed, ToPrimitive};
 use crate::types::{Fr, FrExt};
 
-/// a POSTIVE float representation with 1 byte exponent and N bytes significand
+/// a POSTIVE float representation with 1 byte exponent and NBITS significand, the bits for exponent is 8 - NBITS % 8
+//  so total bits for encoding a number would be always aligned to the byte edge
 #[derive(Debug, Clone, Copy)]
-pub struct Floats<T: PrimInt, const N: usize> {
+pub struct Floats<T: PrimInt, const NBITS: usize> {
     pub exponent: u8,
     //represent a unsigned int in little-endian fashion (last element for the most signifcant byte)
     pub significand: T,
@@ -24,82 +23,92 @@ pub enum FloatsError {
     ParseInt(#[from] std::num::ParseIntError),
     #[error(transparent)]
     Demical(rust_decimal::Error),
+    #[error("exponent is too big")]
+    ExponentTooBig,
 }
 
 type Result<T, E = FloatsError> = std::result::Result<T, E>;
 
-//it is caller's responsibility to ensure enough bytes for accommodating the decoded n
-fn to_be_bytes<T: PrimInt + Zero>(n: T, out: &mut [u8]) {
-    let mut n = n.swap_bytes();
-    let mut i = 0;
-    let mask = T::from(255u8).unwrap();
-    while !n.is_zero() {
-        out[i] = (n & mask).to_u8().unwrap();
-        i += 1;
-        n = n.unsigned_shr(8u32);
-    }
-}
-
-impl<T: PrimInt + Zero, const N: usize> Floats<T, N> {
-    pub fn to_bigint(self) -> BigInt {
+impl<T: PrimInt + Zero, const NBITS: usize> Floats<T, NBITS> {
+    fn sig_to_bigint(self) -> BigInt {
         //cast to the largest int (128bit) possible
-        let s = if T::min_value() < T::zero() {
+        if T::min_value() < T::zero() {
             BigInt::from(self.significand.to_i128().unwrap())
         } else {
             BigInt::from(self.significand.to_u128().unwrap())
-        };
+        }
+    }
 
-        s * BigInt::from(10).pow(self.exponent)
+    pub fn encode_len() -> usize {
+        (NBITS + 8 - NBITS % 8) / 8
+    }
+
+    pub fn to_bigint(self) -> BigInt {
+        //cast to the largest int (128bit) possible
+        BigInt::from(10).pow(self.exponent) * self.sig_to_bigint()
+    }
+
+    pub fn to_encoded_int(self) -> Result<BigInt> {
+        //cast to the largest int (128bit) possible
+        let exp_bits = 8 - NBITS % 8;
+        if self.exponent > (1u8 << (exp_bits - 1)) {
+            return Err(FloatsError::ExponentTooBig);
+        }
+
+        let sig = self.sig_to_bigint();
+        if sig.is_positive() {
+            Ok((BigInt::from(self.exponent) << NBITS) + sig)
+        } else {
+            Ok((BigInt::from(self.exponent) << NBITS) + ((BigInt::from(1) << NBITS) + sig))
+        }
     }
 
     pub fn to_fr(self) -> Fr {
         Fr::from_bigint(self.to_bigint())
     }
 
+    //encode to big-endian bytes, with the exponent parts at the beginning
+    //suppose it could be accommodate to an u128 integer
     pub fn encode(self) -> Vec<u8> {
-        let bytes = (T::zero().count_zeros() / 8) as usize;
-        assert!(bytes >= N);
+        let bi = self.to_encoded_int().unwrap();
+        let (_, mut bytes) = bi.to_bytes_be();
 
-        let mut result = vec![self.exponent];
-        //use biggest buffer (16 bytes, 128bit)
-        let mut buf = [0u8; 16];
-        to_be_bytes(self.significand, &mut buf);
-        let first_bit = buf[0] & 128;
-        let used_buf = &mut buf[(bytes - N)..bytes];
-        //resume the sign bit
-        used_buf[0] |= first_bit;
-        result.append(&mut used_buf.to_vec());
-        result
+        let mut head_zeros = vec![0u8; Self::encode_len() - bytes.len()];
+        head_zeros.append(&mut bytes);
+        head_zeros
     }
 
-    pub fn decode(data: &[u8]) -> Result<Self> {
-        let bytes = (T::zero().count_zeros() / 8) as usize;
-        assert!(bytes >= N && bytes <= 8);
+    pub fn from_encoded_bigint(bi: BigInt) -> Result<Self> {
+        assert!(NBITS < 120);
 
-        let exponent = u8::from_be_bytes(data.get(0..1).unwrap_or_default().try_into()?);
-        let mut buf: [u8; 16] = if N == 16 {
-            data.get(1..17).unwrap_or_default().try_into()?
-        } else {
-            [&[0u8; 16][0..(16 - N)], &data[1..]]
-                .concat()
-                .get(0..16)
-                .unwrap_or_default()
-                .try_into()?
-        };
+        //we do not need the signed for encoded integer
+        let bi = if bi.is_positive() { bi } else { -bi };
+
+        let signi_mask: BigInt = (BigInt::from(1) << NBITS) - 1;
+        let significand = &bi & &signi_mask;
+        let exponent = &bi >> NBITS;
         let significand = if T::min_value() < T::zero() {
-            //pick signal bit
-            if buf[16 - N] & 128u8 != 0u8 {
-                buf[0..16 - N].fill(255);
+            let signed_max = BigInt::from(1) << (NBITS - 1);
+            if significand <= signed_max {
+                T::from(significand.to_i128().unwrap()).unwrap()
+            } else {
+                let significand = -(signi_mask - significand + BigInt::from(1));
+                T::from(significand.to_i128().unwrap()).unwrap()
             }
-            T::from(i128::from_be_bytes(buf)).unwrap()
         } else {
-            T::from(u128::from_be_bytes(buf)).unwrap()
+            T::from(significand.to_u128().unwrap()).unwrap()
         };
+
+        let exponent = exponent.to_u8().ok_or(FloatsError::ExponentTooBig)?;
 
         Ok(Self {
             exponent,
             significand,
         })
+    }
+
+    pub fn decode(data: &[u8]) -> Result<Self> {
+        Self::from_encoded_bigint(BigInt::from_bytes_be(num_bigint::Sign::Plus, data))
     }
 
     pub fn to_decimal(self, prec: u32) -> Decimal {
@@ -119,12 +128,12 @@ impl<T: PrimInt + Zero, const N: usize> Floats<T, N> {
 
     //update from Decimal and round
     pub fn from_decimal(d: &Decimal, prec: u32) -> Result<Self> {
-        let bytes = (T::zero().count_zeros() / 8) as usize;
-        assert!(bytes >= N && bytes <= 8);
+        let eff_bits = T::zero().count_zeros() as usize;
+        assert!(eff_bits > NBITS && eff_bits <= 128);
 
         //TODO: we are not able to handle T as u128 yet
-        let test_low_bound = (T::min_value() >> ((bytes - N) * 8)).to_i128().unwrap();
-        let test_high_bound = (T::max_value() >> ((bytes - N) * 8)).to_i128().unwrap();
+        let test_low_bound = (T::min_value() >> (eff_bits - NBITS)).to_i128().unwrap();
+        let test_high_bound = (T::max_value() >> (eff_bits - NBITS)).to_i128().unwrap();
 
         if d.is_zero() {
             return Ok(Self {
@@ -167,7 +176,7 @@ impl<T: PrimInt + Zero, const N: usize> Floats<T, N> {
     }
 }
 
-pub type Float40 = Floats<i32, 4>;
+pub type Float40 = Floats<i64, 35>;
 
 #[cfg(test)]
 mod tests {
@@ -175,6 +184,81 @@ mod tests {
     use std::str::FromStr;
 
     //type Float864 = Floats<i64, 4>;
+    #[test]
+    fn test_primitive() {
+        let m1 = Float40 {
+            exponent: 0,
+            significand: 65536,
+        };
+        assert_eq!(m1.to_bigint(), BigInt::from(65536));
+        assert_eq!(m1.to_encoded_int().unwrap(), BigInt::from(65536));
+        assert_eq!(
+            BigInt::from(65536),
+            Float40::from_encoded_bigint(BigInt::from(65536))
+                .unwrap()
+                .to_bigint()
+        );
+        let m2 = Float40 {
+            exponent: 1,
+            significand: 16777216,
+        };
+        assert_eq!(m2.to_bigint(), BigInt::from(167772160));
+        assert_eq!(m2.to_encoded_int().unwrap(), BigInt::from(34376515584u128));
+        assert_eq!(
+            BigInt::from(167772160),
+            Float40::from_encoded_bigint(BigInt::from(34376515584u128))
+                .unwrap()
+                .to_bigint()
+        );
+        let m3 = Floats::<i32, 24> {
+            exponent: 1,
+            significand: 65536,
+        };
+        assert_eq!(m3.to_bigint(), BigInt::from(655360));
+        assert_eq!(m3.to_encoded_int().unwrap(), BigInt::from(16842752));
+        assert_eq!(
+            BigInt::from(655360),
+            Floats::<i32, 24>::from_encoded_bigint(BigInt::from(16842752))
+                .unwrap()
+                .to_bigint()
+        );
+        let m4 = Floats::<i32, 16> {
+            exponent: 0,
+            significand: -32767,
+        };
+        assert_eq!(m4.to_bigint(), BigInt::from(-32767));
+        assert_eq!(m4.to_encoded_int().unwrap(), BigInt::from(32769));
+        assert_eq!(
+            BigInt::from(-32767),
+            Floats::<i32, 16>::from_encoded_bigint(BigInt::from(32769))
+                .unwrap()
+                .to_bigint()
+        );
+        let m5 = Floats::<i32, 18> {
+            exponent: 2,
+            significand: -32767,
+        };
+        assert_eq!(m5.to_bigint(), BigInt::from(-3276700));
+        assert_eq!(m5.to_encoded_int().unwrap(), BigInt::from(753665));
+        assert_eq!(
+            BigInt::from(-3276700),
+            Floats::<i32, 18>::from_encoded_bigint(BigInt::from(753665))
+                .unwrap()
+                .to_bigint()
+        );
+        let m6 = Float40 {
+            exponent: 1,
+            significand: -1,
+        };
+        assert_eq!(m6.to_bigint(), BigInt::from(-10));
+        assert_eq!(m6.to_encoded_int().unwrap(), BigInt::from(68719476735u128));
+        assert_eq!(
+            BigInt::from(-10),
+            Float40::from_encoded_bigint(BigInt::from(68719476735u128))
+                .unwrap()
+                .to_bigint()
+        );
+    }
 
     #[test]
     fn test_encode() {
@@ -193,10 +277,10 @@ mod tests {
         };
         let ret = m2.encode();
         assert_eq!(ret.len(), 5);
-        assert_eq!(ret[0], 1);
+        assert_eq!(ret[0], 8);
         assert_eq!(ret[1], 1);
         assert_eq!(ret[4], 0);
-        let m3 = Floats::<i32, 3> {
+        let m3 = Floats::<i32, 24> {
             exponent: 1,
             significand: 65536,
         };
@@ -205,23 +289,24 @@ mod tests {
         assert_eq!(ret[0], 1);
         assert_eq!(ret[1], 1);
         assert_eq!(ret[3], 0);
-        let m4 = Floats::<i32, 2> {
+        let m4 = Floats::<i32, 18> {
             exponent: 0,
-            significand: -32768,
+            significand: -32767,
         };
         let ret = m4.encode();
         assert_eq!(ret.len(), 3);
         assert_eq!(ret[1], 128);
-        assert_eq!(ret[2], 0);
+        assert_eq!(ret[2], 1);
         //test if signed bit has applied
-        let m4_overflowed = Floats::<i32, 2> {
-            exponent: 0,
-            significand: -65536,
+        let m5 = Floats::<i32, 18> {
+            exponent: 1,
+            significand: -1,
         };
-        let ret = m4_overflowed.encode();
+        let ret = m5.encode();
         assert_eq!(ret.len(), 3);
-        assert_eq!(ret[1], 128);
-        assert_eq!(ret[2], 0);
+        assert_eq!(ret[0], 7);
+        assert_eq!(ret[1], 255);
+        assert_eq!(ret[2], 255);
     }
 
     #[test]
@@ -239,56 +324,56 @@ mod tests {
         let ret = m2.encode();
         assert_eq!(Float40::decode(&ret).unwrap().significand, m2.significand);
         assert_eq!(Float40::decode(&ret).unwrap().exponent, m2.exponent);
-        let m3 = Floats::<i32, 3> {
+        let m3 = Floats::<i32, 24> {
             exponent: 1,
             significand: 65536,
         };
         let ret = m3.encode();
         assert_eq!(
-            Floats::<i32, 3>::decode(&ret).unwrap().significand,
+            Floats::<i32, 24>::decode(&ret).unwrap().significand,
             m3.significand
         );
         assert_eq!(
-            Floats::<i32, 3>::decode(&ret).unwrap().exponent,
+            Floats::<i32, 24>::decode(&ret).unwrap().exponent,
             m3.exponent
         );
-        let m4 = Floats::<i32, 2> {
+        let m4 = Floats::<i32, 16> {
             exponent: 0,
-            significand: -32768,
+            significand: -32767,
         };
         let ret = m4.encode();
         assert_eq!(
-            Floats::<i32, 2>::decode(&ret).unwrap().significand,
+            Floats::<i32, 16>::decode(&ret).unwrap().significand,
             m4.significand
         );
         assert_eq!(
-            Floats::<i32, 2>::decode(&ret).unwrap().exponent,
+            Floats::<i32, 16>::decode(&ret).unwrap().exponent,
             m4.exponent
         );
-        let m5 = Floats::<i32, 2> {
+        let m5 = Floats::<i32, 18> {
             exponent: 3,
             significand: -1,
         };
         let ret = m5.encode();
         assert_eq!(
-            Floats::<i32, 2>::decode(&ret).unwrap().significand,
+            Floats::<i32, 18>::decode(&ret).unwrap().significand,
             m5.significand
         );
         assert_eq!(
-            Floats::<i32, 2>::decode(&ret).unwrap().exponent,
+            Floats::<i32, 18>::decode(&ret).unwrap().exponent,
             m5.exponent
         );
-        let m6 = Floats::<u32, 2> {
+        let m6 = Floats::<u32, 16> {
             exponent: 50,
             significand: 65535,
         };
         let ret = m6.encode();
         assert_eq!(
-            Floats::<u32, 2>::decode(&ret).unwrap().significand,
+            Floats::<u32, 16>::decode(&ret).unwrap().significand,
             m6.significand
         );
         assert_eq!(
-            Floats::<u32, 2>::decode(&ret).unwrap().exponent,
+            Floats::<u32, 16>::decode(&ret).unwrap().exponent,
             m6.exponent
         );
     }
@@ -305,22 +390,22 @@ mod tests {
             significand: 16777216,
         };
         assert_eq!(m2.to_bigint(), BigInt::from(167772160u32));
-        let m3 = Floats::<i32, 3> {
+        let m3 = Floats::<i32, 24> {
             exponent: 1,
             significand: 65536,
         };
         assert_eq!(m3.to_bigint(), BigInt::from(655360));
-        let m4 = Floats::<i32, 2> {
+        let m4 = Floats::<i32, 16> {
             exponent: 0,
             significand: -32768,
         };
         assert_eq!(m4.to_bigint(), BigInt::from(-32768i32));
-        let m5 = Floats::<i32, 2> {
+        let m5 = Floats::<i32, 18> {
             exponent: 2,
             significand: -32768,
         };
         assert_eq!(m5.to_bigint(), BigInt::from(-3276800i32));
-        let m6 = Floats::<u32, 2> {
+        let m6 = Floats::<u32, 16> {
             exponent: 5,
             significand: 65535,
         };
@@ -355,10 +440,10 @@ mod tests {
         assert_eq!(p5.significand, 1);
         assert_eq!(d, p5.to_decimal(2));
         let d = Decimal::new(123456, 5);
-        let r5 = Floats::<u32, 2>::from_decimal(&d, 6).unwrap();
+        let r5 = Floats::<u32, 16>::from_decimal(&d, 6).unwrap();
         assert_eq!(r5.exponent, 2);
         assert_eq!(r5.significand, 12345);
-        let r5 = Floats::<i32, 2>::from_decimal(&d, 6).unwrap();
+        let r5 = Floats::<i32, 16>::from_decimal(&d, 6).unwrap();
         assert_eq!(r5.exponent, 2);
         assert_eq!(r5.significand, 12345);
 
@@ -388,7 +473,7 @@ mod tests {
         assert_eq!(m5.significand, -1);
         assert_eq!(d, m5.to_decimal(2));
         let d = Decimal::new(-123456, 5);
-        let mr5 = Floats::<i32, 2>::from_decimal(&d, 6).unwrap();
+        let mr5 = Floats::<i32, 16>::from_decimal(&d, 6).unwrap();
         assert_eq!(mr5.exponent, 2);
         assert_eq!(mr5.significand, -12345);
     }
