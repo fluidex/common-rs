@@ -43,6 +43,13 @@ impl<T: PrimInt + Zero, const NBITS: usize> Floats<T, NBITS> {
         (NBITS + 8 - NBITS % 8) / 8
     }
 
+    pub fn zero() -> Self {
+        Self {
+            significand: T::zero(),
+            exponent: 0,
+        }
+    }
+
     pub fn to_bigint(self) -> BigInt {
         //cast to the largest int (128bit) possible
         BigInt::from(10).pow(self.exponent) * self.sig_to_bigint()
@@ -53,6 +60,10 @@ impl<T: PrimInt + Zero, const NBITS: usize> Floats<T, NBITS> {
         let exp_bits = 8 - NBITS % 8;
         if self.exponent > (1u8 << (exp_bits - 1)) {
             return Err(FloatsError::ExponentTooBig);
+        }
+
+        if self.significand == T::zero() {
+            return Ok(BigInt::zero());
         }
 
         let sig = self.sig_to_bigint();
@@ -476,6 +487,25 @@ mod tests {
         let mr5 = Floats::<i32, 16>::from_decimal(&d, 6).unwrap();
         assert_eq!(mr5.exponent, 2);
         assert_eq!(mr5.significand, -12345);
+    }
+
+    #[test]
+    fn test_edges() {
+        // 1.23456 * 10**18
+
+        let d0 = Decimal::new(0, 0);
+        let f = Float40::from_decimal(&d0, 18).unwrap();
+        assert_eq!(f.exponent, 0);
+        assert_eq!(f.significand, 0);
+        assert_eq!(f.to_bigint().to_u32().unwrap(), 0u32);
+        println!("{}", f.to_encoded_int().unwrap());
+        assert_eq!(f.to_encoded_int().unwrap().to_u32().unwrap(), 0u32);
+
+        let f = Float40::from_encoded_bigint(BigInt::from(0)).unwrap();
+        assert_eq!(f.exponent, 0);
+        assert_eq!(f.significand, 0);
+        assert_eq!(f.to_bigint().to_u32().unwrap(), 0u32);
+        assert_eq!(f.to_encoded_int().unwrap().to_u32().unwrap(), 0u32);
     }
 
     #[test]
