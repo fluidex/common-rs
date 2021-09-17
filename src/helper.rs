@@ -97,7 +97,7 @@ where
         use Ordering::*;
 
         if self.last_elements.contains_key(&idx)
-            && match (self.compare)(&self.last_elements.insert(idx, new.clone()).unwrap(), &new) {
+            && match (self.compare)(&self.last_elements.insert(idx, new.clone()).unwrap(), new) {
                 Less => self.ordering == Desc,
                 Equal => false,
                 Greater => self.ordering == Asc,
