@@ -5,8 +5,6 @@ use serde::{Deserialize, Serialize};
 #[sqlx(type_name = "task_status", rename_all = "snake_case")]
 pub enum TaskStatus {
     Inited,
-    Witgening,
-    Witgened,
     Proving,
     Proved,
 }
@@ -24,7 +22,6 @@ pub struct Task {
     pub block_id: i64,
     pub input: serde_json::Value,
     pub output: Option<serde_json::Value>,
-    pub witness: Option<Vec<u8>>,
     pub public_input: Option<Vec<u8>>,
     pub proof: Option<Vec<u8>>,
     pub status: TaskStatus,
