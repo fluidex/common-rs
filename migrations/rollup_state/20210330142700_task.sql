@@ -1,4 +1,4 @@
-CREATE TYPE task_status AS ENUM('inited', 'witgening', 'witgened', 'proving', 'proved');
+CREATE TYPE task_status AS ENUM('inited', 'proving', 'proved');
 
 CREATE TABLE task (
     task_id VARCHAR(30) NOT NULL,
@@ -6,7 +6,6 @@ CREATE TABLE task (
     block_id BIGINT NOT NULL, -- TODO: combine with task_id
     input jsonb NOT NULL,
     output jsonb DEFAULT NULL,
-    witness BYTEA DEFAULT NULL,
     public_input BYTEA DEFAULT NULL,
     proof BYTEA DEFAULT NULL,
     status task_status NOT NULL DEFAULT 'inited',
