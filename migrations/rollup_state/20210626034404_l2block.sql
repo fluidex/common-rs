@@ -5,6 +5,6 @@ CREATE TABLE l2block (
     new_root VARCHAR(256) NOT NULL,
     status block_status NOT NULL DEFAULT 'uncommited',
     detail jsonb NOT NULL,
-    l1_tx_hash: BYTEA,
+    l1_tx_hash: VARCHAR(256),
     created_time TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
