@@ -14,7 +14,7 @@ pub struct L2Block {
     pub block_id: i64, // TODO: keep this consistent with the smart contract
     pub new_root: String,
     pub status: BlockStatus,
-    pub l1_tx_hash: Option<String>, // use String for now, consider switch to <u8> in the future.
+    pub l1_tx_hash: Option<String>,
     pub detail: serde_json::Value,
     pub created_time: TimestampDbType,
 }
