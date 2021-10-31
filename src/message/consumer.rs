@@ -37,7 +37,7 @@ impl<C: ConsumerContext + 'static> RdConsumerExt for stream_consumer::StreamCons
     type CTXType = stream_consumer::StreamConsumerContext<C>;
     type SelfType = stream_consumer::StreamConsumer<C>;
     fn to_self(&self) -> &Self::SelfType {
-        &self
+        self
     }
 }
 
