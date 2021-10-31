@@ -45,7 +45,7 @@ impl<C: ConsumerContext> RdConsumerExt for base_consumer::BaseConsumer<C> {
     type CTXType = C;
     type SelfType = base_consumer::BaseConsumer<C>;
     fn to_self(&self) -> &Self::SelfType {
-        &self
+        self
     }
 }
 
