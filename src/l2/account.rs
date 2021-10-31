@@ -48,10 +48,15 @@ impl fmt::Debug for L2Account {
 }
 
 impl L2Account {
-    pub fn new(private_key: &str) -> Result<Self, String> {
+    pub fn from_private_key_string(private_key: &str) -> Result<Self, String> {
         let private_key_bytes = hex::decode(private_key.trim_start_matches("0x")).unwrap();
         let private_key = SigningKey::from_bytes(&private_key_bytes).unwrap();
-        let signature = sign_msg_with_signing_key(&private_key, &*CREATE_L2_ACCOUNT_MSG);
+
+        Self::from_private_key(&private_key)
+    }
+
+    pub fn from_private_key(private_key: &SigningKey) -> Result<Self, String> {
+        let signature = sign_msg_with_signing_key(private_key, &*CREATE_L2_ACCOUNT_MSG);
         let seed = &signature.to_vec()[0..32];
 
         let priv_key = PrivateKey::import(seed.to_vec())?;
@@ -76,9 +81,6 @@ impl L2Account {
         })
     }
 
-    pub fn sign_hash_raw(&self, hash: Fr) -> Result<SignatureBJJ, String> {
-        self.priv_key.sign(hash.to_bigint())
-    }
     pub fn sign_hash(&self, hash: Fr) -> Result<Signature, String> {
         let sig = self.sign_hash_raw(hash)?;
         let s = Fr::from_bigint(sig.s);
@@ -89,8 +91,34 @@ impl L2Account {
             r8y: sig.r_b8.y,
         })
     }
+
     pub fn sign_hash_packed(&self, hash: Fr) -> Result<[u8; 64], String> {
-        Ok(self.priv_key.sign(hash.to_bigint())?.compress())
+        Ok(self.sign_hash_raw(hash)?.compress())
+    }
+
+    pub fn sign_hash_raw(&self, hash: Fr) -> Result<SignatureBJJ, String> {
+        self.priv_key.sign(hash.to_bigint())
+    }
+
+    pub fn verify(&self, sig: Signature) -> bool {
+        Self::verify_using_pubkey(sig, &self.pub_key)
+    }
+
+    pub fn verify_raw_using_pubkey(hash: Fr, sig_bjj: SignatureBJJ, pub_key: Point) -> bool {
+        let hash = hash.to_bigint();
+        babyjubjub_rs::verify(pub_key, sig_bjj, hash)
+    }
+
+    pub fn verify_using_pubkey(sig: Signature, pub_key: &Point) -> bool {
+        let r_b8 = Point {
+            x: sig.r8x,
+            y: sig.r8y,
+        };
+        let sig_bjj = SignatureBJJ {
+            r_b8,
+            s: sig.s.to_bigint(),
+        };
+        Self::verify_raw_using_pubkey(sig.hash, sig_bjj, pub_key.clone())
     }
 }
 
@@ -225,15 +253,62 @@ impl<D: Digest> FixedOutput for ProxyDigest<D> {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use super::*;
 
     #[test]
-    fn test() {
-        const KEY: &str = "0x78fcdf46b07b7a0033f97646dff6528b116c8230b66bb82f86c0fb572349cf9c";
-        const PUBKEY: &str = "0xe74a2954787f9fab013d7186388f7a610326bebf";
-        const BJJ_PUBKEY: &str = "80c117e2be91e44526e14fa786c565d15b79585d1ae1ef229cfcdf47570f241c";
-        let account = L2Account::new(KEY).unwrap();
-        assert_eq!(account.bjj_pub_key, BJJ_PUBKEY);
+    fn test_l2_account_sign_and_verify() {
+        // Build a new account from private key.
+        let private_key = "0b22f852cd07386bce533f2038821fdcebd9c5ced9e3cd51e3a05d421dbfd785";
+        let account = L2Account::from_private_key_string(&private_key)
+            .expect("should generate account from private key");
+        assert_eq!(
+            account.bjj_pub_key,
+            "7b70843a42114e88149e3961495c03f9a41292c8b97bd1e2026597d185478293"
+        );
+        assert_eq!(
+            account.priv_key.scalar_key().to_string(),
+            "4704123316535221980022476630308077992533860022531063254760112661077914822342"
+        );
+        assert_eq!(
+            account.ax.to_bigint().to_str_radix(16),
+            "2eaf09228d4a7c39006f0dccea24d2c40e51354be7bff328f97a2ff2e1cdb1eb"
+        );
+        assert_eq!(
+            account.ay.to_bigint().to_str_radix(16),
+            "13824785d1976502e2d17bb9c89212a4f9035c4961399e14884e11423a84707b"
+        );
+        assert_eq!(account.sign, Fr::from_u32(1));
+
+        // Sign the input hash.
+        let hash = Fr::from_str("1357924680");
+        let signature = account.sign_hash(hash).unwrap();
+        assert_eq!(signature.hash.to_decimal_string(), "1357924680");
+        assert_eq!(
+            signature.r8x.to_decimal_string(),
+            "1565870800038234366927145996777103155914851736776946265065551842816839326614"
+        );
+        assert_eq!(
+            signature.r8y.to_decimal_string(),
+            "2810146718209362652178416316636011244276358036998836625738624554721313985766"
+        );
+        assert_eq!(
+            &signature.s.to_bigint().to_string(),
+            "1515607421274599271453572877127065525920794810715371560475072470378850169898"
+        );
+        let packed_signature = account.sign_hash_packed(hash).unwrap();
+        assert_eq!(
+            hex::encode(packed_signature),
+            "e6949e09d2f4165df14bc6ded7e21d03bc3235edffd7eeb93d1548ea967c36062a34a6534a2c3a98b007e623a5e60b49c0bc9fd9ec6f9c50e273b0b0abcd5903"
+        );
+
+        // Verify the signature.
+        assert!(account.verify(signature));
+        let unpacked_signature = babyjubjub_rs::decompress_signature(&packed_signature).unwrap();
+        assert!(L2Account::verify_raw_using_pubkey(
+            hash,
+            unpacked_signature,
+            account.pub_key
+        ));
     }
 }
