@@ -1,4 +1,5 @@
 use crate::ff::Field;
+use crate::serde::FrStr;
 use crate::types::FrExt;
 use crate::Fr;
 use anyhow::Result;
@@ -15,6 +16,7 @@ use ethers::prelude::Signature as EthersSignature;
 use ethers::signers::to_eip155_v;
 use ethers::utils::hash_message;
 use once_cell::sync::Lazy;
+use serde::{Deserialize, Serialize};
 use std::fmt;
 
 pub type SignatureBJJ = babyjubjub_rs::Signature;
@@ -122,11 +124,15 @@ impl L2Account {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Signature {
+    #[serde(with = "FrStr")]
     pub hash: Fr,
+    #[serde(with = "FrStr")]
     pub s: Fr,
+    #[serde(with = "FrStr")]
     pub r8x: Fr,
+    #[serde(with = "FrStr")]
     pub r8y: Fr,
 }
 
