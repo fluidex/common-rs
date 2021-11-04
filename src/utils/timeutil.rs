@@ -59,3 +59,32 @@ impl From<FTimestamp> for DateTime<Utc> {
         DateTime::<Utc>::from_utc(f.into(), Utc)
     }
 }
+
+impl FTimestamp {
+    pub fn as_seconds(&self) -> i64 {
+        self.0.floor() as i64
+    }
+
+    pub fn as_milliseconds(&self) -> i64 {
+        (self.0 * 1e3).floor() as i64
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::NaiveDate;
+
+    #[test]
+    fn test_convert_to_seconds() {
+        let timestamp: FTimestamp = (&NaiveDate::from_ymd(1970, 1, 1).and_hms(0, 0, 40)).into();
+        assert_eq!(timestamp.as_seconds(), 40);
+    }
+
+    #[test]
+    fn test_convert_to_milliseconds() {
+        let timestamp: FTimestamp =
+            (&NaiveDate::from_ymd(1970, 1, 1).and_hms_milli(0, 0, 40, 50)).into();
+        assert_eq!(timestamp.as_milliseconds(), 40050);
+    }
+}
