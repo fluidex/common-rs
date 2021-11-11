@@ -3,6 +3,7 @@ CREATE TYPE block_status AS ENUM('uncommited', 'commited', 'verified');
 CREATE TABLE l2block (
     block_id BIGINT PRIMARY KEY,
     new_root VARCHAR(256) NOT NULL,
+    raw_public_data bytea DEFAULT NULL,
     status block_status NOT NULL DEFAULT 'uncommited',
     l1_tx_hash VARCHAR(66) DEFAULT NULL,
     detail jsonb NOT NULL,

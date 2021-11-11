@@ -13,6 +13,7 @@ pub enum BlockStatus {
 pub struct L2Block {
     pub block_id: i64, // TODO: keep this consistent with the smart contract
     pub new_root: String,
+    pub raw_public_data: Option<Vec<u8>>,
     pub status: BlockStatus,
     pub l1_tx_hash: Option<String>,
     pub detail: serde_json::Value,
