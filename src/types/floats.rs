@@ -25,6 +25,8 @@ pub enum FloatsError {
     Demical(rust_decimal::Error),
     #[error("exponent is too big")]
     ExponentTooBig,
+    #[error("number {0} too big to be saved")]
+    NumberTooBig(BigInt),
 }
 
 type Result<T, E = FloatsError> = std::result::Result<T, E>;
@@ -57,8 +59,8 @@ impl<T: PrimInt + Zero, const NBITS: usize> Floats<T, NBITS> {
 
     pub fn to_encoded_int(self) -> Result<BigInt> {
         //cast to the largest int (128bit) possible
-        let exp_bits = 8 - NBITS % 8;
-        if self.exponent > (1u8 << (exp_bits - 1)) {
+        let max_exp = (1 << (8 - NBITS % 8)) - 1;
+        if self.exponent > max_exp as u8 {
             return Err(FloatsError::ExponentTooBig);
         }
 
@@ -101,13 +103,13 @@ impl<T: PrimInt + Zero, const NBITS: usize> Floats<T, NBITS> {
         let significand = if T::min_value() < T::zero() {
             let signed_max = BigInt::from(1) << (NBITS - 1);
             if significand <= signed_max {
-                T::from(significand.to_i128().unwrap()).unwrap()
+                T::from(significand.to_i128().unwrap()).ok_or(FloatsError::NumberTooBig(bi))?
             } else {
                 let significand = -(signi_mask - significand + BigInt::from(1));
-                T::from(significand.to_i128().unwrap()).unwrap()
+                T::from(significand.to_i128().unwrap()).ok_or(FloatsError::NumberTooBig(bi))?
             }
         } else {
-            T::from(significand.to_u128().unwrap()).unwrap()
+            T::from(significand.to_u128().unwrap()).ok_or(FloatsError::NumberTooBig(bi))?
         };
 
         let exponent = exponent.to_u8().ok_or(FloatsError::ExponentTooBig)?;
@@ -134,6 +136,53 @@ impl<T: PrimInt + Zero, const NBITS: usize> Floats<T, NBITS> {
             ret
         } else {
             ret * Decimal::new(10, 0).pow(self.exponent as u64 - prec as u64)
+        }
+    }
+
+    pub fn from_bigint(bi: BigInt) -> Result<Self> {
+        let eff_bits = T::zero().count_zeros() as usize;
+        assert!(eff_bits > NBITS && eff_bits <= 128);
+
+        //TODO: we are not able to handle T as u128 yet
+        let test_low_bound = T::min_value() >> (eff_bits - NBITS);
+        let test_high_bound = T::max_value() >> (eff_bits - NBITS);
+
+        let max_exp = (1 << (8 - NBITS % 8)) - 1;
+
+        let mut exponent = 0u8;
+        let mut encode_int = bi.clone();
+        let mut test_sig: BigInt = bi.clone() / 10;
+        while encode_int == test_sig.clone() * 10 && exponent <= max_exp as u8 {
+            encode_int = test_sig;
+            exponent += 1;
+            test_sig = encode_int.clone() / 10;
+        }
+
+        println!("encode_int {}", encode_int);
+
+        let significand = if T::min_value() < T::zero() {
+            T::from(
+                encode_int
+                    .to_i128()
+                    .ok_or_else(|| FloatsError::NumberTooBig(bi.clone()))?,
+            )
+            .ok_or_else(|| FloatsError::NumberTooBig(bi.clone()))?
+        } else {
+            T::from(
+                encode_int
+                    .to_u128()
+                    .ok_or_else(|| FloatsError::NumberTooBig(bi.clone()))?,
+            )
+            .ok_or_else(|| FloatsError::NumberTooBig(bi.clone()))?
+        };
+
+        if significand > test_high_bound || significand < test_low_bound {
+            Err(FloatsError::NumberTooBig(bi))
+        } else {
+            Ok(Self {
+                exponent,
+                significand,
+            })
         }
     }
 
@@ -269,6 +318,40 @@ mod tests {
                 .unwrap()
                 .to_bigint()
         );
+    }
+
+    #[test]
+    fn test_primitive2() {
+        let m1 = Float40::from_bigint(BigInt::from(1000)).unwrap();
+        assert_eq!(m1.exponent, 3);
+        assert_eq!(m1.significand, 1);
+
+        let m2 = Float40::from_bigint(BigInt::from(100000000000u128)).unwrap();
+        assert_eq!(m2.exponent, 11);
+        assert_eq!(m2.significand, 1);
+
+        let m3 = Float40::from_bigint(BigInt::from(999990)).unwrap();
+        assert_eq!(m3.exponent, 1);
+        assert_eq!(m3.significand, 99999);
+
+        let m3 = Float40::from_bigint(BigInt::from(-777770)).unwrap();
+        assert_eq!(m3.exponent, 1);
+        assert_eq!(m3.significand, -77777);
+
+        //notice the bound is -17179869183 ~ 17179869183
+        let m4 = Float40::from_bigint(BigInt::from(159999999990u128)).unwrap();
+        assert_eq!(m4.exponent, 1);
+        assert_eq!(m4.significand, 15999999999i64);
+
+        Float40::from_bigint(BigInt::from(159999999999u128)).expect_err("expect too big error");
+
+        //extremely big but can be encoded
+        let m5 = Float40::from_bigint(
+            BigInt::from_str("-18330000000000000000000000000000000000").unwrap(),
+        )
+        .unwrap();
+        assert_eq!(m5.exponent, 32);
+        assert_eq!(m5.significand, -183300);
     }
 
     #[test]
