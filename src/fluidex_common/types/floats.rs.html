@@ -606,6 +606,8 @@
 <span id="606">606</span>
 <span id="607">607</span>
 <span id="608">608</span>
+<span id="609">609</span>
+<span id="610">610</span>
 </pre><pre class="rust"><code><span class="kw">use</span> <span class="kw">super</span>::{<span class="ident">BigInt</span>, <span class="ident">Decimal</span>};
 <span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::num_traits</span>::{<span class="ident">identities::Zero</span>, <span class="ident">int::PrimInt</span>, <span class="ident">FromPrimitive</span>, <span class="ident">Pow</span>, <span class="ident">Signed</span>, <span class="ident">ToPrimitive</span>};
 <span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::types</span>::{<span class="ident">Fr</span>, <span class="ident">FrExt</span>};
@@ -741,10 +743,12 @@
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">ret</span> <span class="op">=</span> <span class="ident">Decimal::from_i128</span>(<span class="self">self</span>.<span class="ident">significand</span>.<span class="ident">to_i128</span>().<span class="ident">unwrap</span>()).<span class="ident">unwrap</span>();
         <span class="kw">if</span> (<span class="self">self</span>.<span class="ident">exponent</span> <span class="kw">as</span> <span class="ident">u32</span>) <span class="op">&lt;</span> <span class="ident">prec</span> {
             <span class="ident">ret</span>.<span class="ident">set_scale</span>(<span class="ident">prec</span> <span class="op">-</span> <span class="self">self</span>.<span class="ident">exponent</span> <span class="kw">as</span> <span class="ident">u32</span>).<span class="ident">unwrap</span>();
-            <span class="ident">ret</span>
         } <span class="kw">else</span> {
-            <span class="ident">ret</span> <span class="op">*</span> <span class="ident">Decimal::new</span>(<span class="number">10</span>, <span class="number">0</span>).<span class="ident">pow</span>(<span class="self">self</span>.<span class="ident">exponent</span> <span class="kw">as</span> <span class="ident">u64</span> <span class="op">-</span> <span class="ident">prec</span> <span class="kw">as</span> <span class="ident">u64</span>)
+            <span class="ident">ret</span> <span class="kw-2">*</span><span class="op">=</span> <span class="ident">Decimal::new</span>(<span class="number">10</span>, <span class="number">0</span>).<span class="ident">pow</span>(<span class="self">self</span>.<span class="ident">exponent</span> <span class="kw">as</span> <span class="ident">u64</span> <span class="op">-</span> <span class="ident">prec</span> <span class="kw">as</span> <span class="ident">u64</span>);
         }
+
+        <span class="ident">ret</span>.<span class="ident">rescale</span>(<span class="ident">prec</span>);
+        <span class="ident">ret</span>
     }
 
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from_bigint</span>(<span class="ident">bi</span>: <span class="ident">BigInt</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span> {
