@@ -133,10 +133,12 @@ impl<T: PrimInt + Zero, const NBITS: usize> Floats<T, NBITS> {
         let mut ret = Decimal::from_i128(self.significand.to_i128().unwrap()).unwrap();
         if (self.exponent as u32) < prec {
             ret.set_scale(prec - self.exponent as u32).unwrap();
-            ret
         } else {
-            ret * Decimal::new(10, 0).pow(self.exponent as u64 - prec as u64)
+            ret = ret * Decimal::new(10, 0).pow(self.exponent as u64 - prec as u64);
         }
+
+        ret.rescale(prec);
+        ret
     }
 
     pub fn from_bigint(bi: BigInt) -> Result<Self> {
