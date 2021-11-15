@@ -134,7 +134,7 @@ impl<T: PrimInt + Zero, const NBITS: usize> Floats<T, NBITS> {
         if (self.exponent as u32) < prec {
             ret.set_scale(prec - self.exponent as u32).unwrap();
         } else {
-            ret = ret * Decimal::new(10, 0).pow(self.exponent as u64 - prec as u64);
+            ret *= Decimal::new(10, 0).pow(self.exponent as u64 - prec as u64);
         }
 
         ret.rescale(prec);
