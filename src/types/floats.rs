@@ -160,8 +160,6 @@ impl<T: PrimInt + Zero, const NBITS: usize> Floats<T, NBITS> {
             test_sig = encode_int.clone() / 10;
         }
 
-        println!("encode_int {}", encode_int);
-
         let significand = if T::min_value() < T::zero() {
             T::from(
                 encode_int
