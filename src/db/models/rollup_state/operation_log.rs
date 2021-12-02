@@ -1,3 +1,4 @@
+use crate::db::TimestampDbType;
 use serde::{Deserialize, Serialize};
 
 #[derive(sqlx::FromRow, Debug, Clone, Serialize, Deserialize)]
